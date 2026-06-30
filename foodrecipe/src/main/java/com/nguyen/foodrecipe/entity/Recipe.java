@@ -53,12 +53,22 @@ public class Recipe {
             foreignKey = @ForeignKey(name = "fk_recipe_category"))
     private Category category;
 
-    @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(
+            mappedBy = "recipe",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     @BatchSize(size = 20)
     @Builder.Default
     private List<Ingredient> ingredients = new ArrayList<>();
 
-    @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(
+            mappedBy = "recipe",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     @OrderBy("stepNumber ASC")
     @BatchSize(size = 20)
     @Builder.Default
