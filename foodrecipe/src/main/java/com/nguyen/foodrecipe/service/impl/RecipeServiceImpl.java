@@ -1,8 +1,10 @@
 package com.nguyen.foodrecipe.service.impl;
 
 import com.nguyen.foodrecipe.dto.InstructionRequest;
+import com.nguyen.foodrecipe.dto.RecipeDetailResponse;
 import com.nguyen.foodrecipe.dto.RecipeRequest;
 import com.nguyen.foodrecipe.dto.RecipeResponse;
+import com.nguyen.foodrecipe.dto.RecipeSummaryResponse;
 import com.nguyen.foodrecipe.entity.Category;
 import com.nguyen.foodrecipe.entity.Ingredient;
 import com.nguyen.foodrecipe.entity.Instruction;
@@ -20,14 +22,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Implementation of {@link RecipeService}.
- * <p>
- * Handles creation, update, and deletion of recipes together with their
- * child ingredients and instructions. Uses {@code orphanRemoval = true}
- * on the entity to automatically delete stale children on update.
- * </p>
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -38,9 +32,6 @@ public class RecipeServiceImpl implements RecipeService {
     private final CategoryRepository categoryRepository;
     private final RecipeMapper recipeMapper;
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     @Transactional
     public RecipeResponse createRecipe(RecipeRequest request) {
@@ -65,9 +56,6 @@ public class RecipeServiceImpl implements RecipeService {
         return recipeMapper.toResponse(saved);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     @Transactional
     public RecipeResponse updateRecipe(Long id, RecipeRequest request) {
@@ -84,7 +72,6 @@ public class RecipeServiceImpl implements RecipeService {
         recipe.setDescription(request.description());
         recipe.setCategory(category);
 
-        // Clear existing children — orphanRemoval will delete them
         recipe.getIngredients().clear();
         recipe.getInstructions().clear();
 
@@ -97,9 +84,6 @@ public class RecipeServiceImpl implements RecipeService {
         return recipeMapper.toResponse(updated);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     @Transactional
     public void deleteRecipe(Long id) {
@@ -113,46 +97,40 @@ public class RecipeServiceImpl implements RecipeService {
         log.info("Recipe deleted successfully with id: {}", id);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public RecipeResponse getRecipeById(Long id) {
+    public RecipeDetailResponse getRecipeById(Long id) {
         log.debug("Fetching recipe id: {}", id);
 
         Recipe recipe = recipeRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new RecipeNotFoundException(id));
 
-        return recipeMapper.toResponse(recipe);
+        return recipeMapper.toDetailResponse(recipe);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public Page<RecipeResponse> getAllRecipes(Pageable pageable) {
-        log.debug("Fetching all recipes — page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
+    public Page<RecipeSummaryResponse> getAllRecipes(String keyword, Pageable pageable) {
+        log.debug("Fetching all recipes — page: {}, size: {}, keyword: {}",
+                pageable.getPageNumber(), pageable.getPageSize(), keyword);
+
+        if (keyword != null && !keyword.isBlank()) {
+            return recipeRepository.searchByTitle(keyword.trim(), pageable)
+                    .map(recipeMapper::toSummaryResponse);
+        }
 
         return recipeRepository.findAll(pageable)
-                .map(recipeMapper::toResponse);
+                .map(recipeMapper::toSummaryResponse);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public Page<RecipeResponse> searchRecipes(String keyword, Pageable pageable) {
+    public Page<RecipeSummaryResponse> searchRecipes(String keyword, Pageable pageable) {
         log.debug("Searching recipes with keyword: {}", keyword);
 
-        return recipeRepository.searchByTitle(keyword, pageable)
-                .map(recipeMapper::toResponse);
+        return recipeRepository.searchByTitle(keyword.trim(), pageable)
+                .map(recipeMapper::toSummaryResponse);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public Page<RecipeResponse> getRecipesByCategory(Long categoryId, Pageable pageable) {
+    public Page<RecipeSummaryResponse> getRecipesByCategory(Long categoryId, Pageable pageable) {
         log.debug("Fetching recipes for category id: {}", categoryId);
 
         if (!categoryRepository.existsById(categoryId)) {
@@ -160,15 +138,9 @@ public class RecipeServiceImpl implements RecipeService {
         }
 
         return recipeRepository.findByCategoryId(categoryId, pageable)
-                .map(recipeMapper::toResponse);
+                .map(recipeMapper::toSummaryResponse);
     }
 
-    // ── Private helpers ──────────────────────────────────────────────────────
-
-    /**
-     * Converts ingredient strings from the request into entities and
-     * adds them to the recipe using the bidirectional helper.
-     */
     private void addIngredientsToRecipe(Recipe recipe, RecipeRequest request) {
         for (String ingredientText : request.ingredients()) {
             Ingredient ingredient = Ingredient.builder()
@@ -178,10 +150,6 @@ public class RecipeServiceImpl implements RecipeService {
         }
     }
 
-    /**
-     * Converts instruction request objects into entities and
-     * adds them to the recipe using the bidirectional helper.
-     */
     private void addInstructionsToRecipe(Recipe recipe, RecipeRequest request) {
         for (InstructionRequest instrReq : request.instructions()) {
             Instruction instruction = Instruction.builder()

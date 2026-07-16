@@ -1546,3 +1546,7 @@ DETAIL:  Failing row contains (813, null, null, null, Deviled Eggs, null, 1).
 2026-06-30 10:55:08  INFO      Done. Imported=10 Skipped=0 Failed=0 Elapsed=7.43s
 2026-06-30 10:58:26  INFO      Starting milestone 3 (CSV=data/recipes_data.csv)
 2026-06-30 10:58:27  INFO      Using category_id=1
+2026-07-16 23:45:36  INFO      Starting milestone 3 (CSV=data/recipes_data.csv)
+2026-07-16 23:45:39  INFO      Using category_id=1
+2026-07-16 23:52:15  INFO      Committed batch of 500 recipes
+2026-07-17 00:01:35  INFO      Committed batch of 500 recipes
