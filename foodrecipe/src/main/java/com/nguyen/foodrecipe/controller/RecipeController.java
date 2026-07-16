@@ -2,6 +2,7 @@ package com.nguyen.foodrecipe.controller;
 
 import com.nguyen.foodrecipe.dto.*;
 import com.nguyen.foodrecipe.security.UserPrincipal;
+import java.util.List;
 import com.nguyen.foodrecipe.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -46,13 +47,51 @@ public class RecipeController {
     }
 
     @GetMapping("/search")
-    @Operation(summary = "Search recipes by title",
-            description = "Search recipes whose title contains the keyword (case-insensitive)")
-    public ResponseEntity<ApiResponse<Page<RecipeSummaryResponse>>> searchRecipes(
-            @RequestParam @Parameter(description = "Search keyword") String keyword,
+    @Operation(summary = "Advanced search",
+            description = "Search recipes by keyword, category, ingredient, or any combination. Supports pagination and sorting by title, createdAt, averageRating, favoriteCount, commentCount.")
+    public ResponseEntity<ApiResponse<Page<SearchRecipeResponse>>> searchRecipes(
+            @RequestParam(required = false) @Parameter(description = "Search keyword (matches title)") String keyword,
+            @RequestParam(required = false) @Parameter(description = "Filter by category ID") Long categoryId,
+            @RequestParam(required = false) @Parameter(description = "Filter by ingredient name (partial match)") String ingredient,
             @PageableDefault(size = 20, sort = "title") Pageable pageable) {
-        Page<RecipeSummaryResponse> page = recipeService.searchRecipes(keyword, pageable);
+        Page<SearchRecipeResponse> page = recipeService.advancedSearch(keyword, categoryId, ingredient, pageable);
         return ResponseEntity.ok(ApiResponse.success("Search results fetched successfully", page));
+    }
+
+    @GetMapping("/popular")
+    @Operation(summary = "Popular recipes",
+            description = "Return recipes sorted by a weighted popularity score based on average rating (weight 3), favorite count (weight 2), and comment count (weight 1).")
+    public ResponseEntity<ApiResponse<Page<PopularRecipeResponse>>> getPopularRecipes(
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<PopularRecipeResponse> page = recipeService.getPopularRecipes(pageable);
+        return ResponseEntity.ok(ApiResponse.success("Popular recipes fetched successfully", page));
+    }
+
+    @GetMapping("/top-rated")
+    @Operation(summary = "Top rated recipes",
+            description = "Return recipes ordered by average rating descending.")
+    public ResponseEntity<ApiResponse<Page<SearchRecipeResponse>>> getTopRatedRecipes(
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<SearchRecipeResponse> page = recipeService.getTopRatedRecipes(pageable);
+        return ResponseEntity.ok(ApiResponse.success("Top rated recipes fetched successfully", page));
+    }
+
+    @GetMapping("/latest")
+    @Operation(summary = "Latest recipes",
+            description = "Return newest recipes ordered by creation date descending.")
+    public ResponseEntity<ApiResponse<Page<RecipeSummaryResponse>>> getLatestRecipes(
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<RecipeSummaryResponse> page = recipeService.getLatestRecipes(pageable);
+        return ResponseEntity.ok(ApiResponse.success("Latest recipes fetched successfully", page));
+    }
+
+    @GetMapping("/{id}/similar")
+    @Operation(summary = "Similar recipes",
+            description = "Recommend up to 10 similar recipes based on shared category and common ingredients, ranked by relevance.")
+    public ResponseEntity<ApiResponse<List<SimilarRecipeResponse>>> getSimilarRecipes(
+            @PathVariable @Parameter(description = "Recipe ID") Long id) {
+        List<SimilarRecipeResponse> similar = recipeService.getSimilarRecipes(id);
+        return ResponseEntity.ok(ApiResponse.success("Similar recipes fetched successfully", similar));
     }
 
     @PostMapping("/{id}/favorite")

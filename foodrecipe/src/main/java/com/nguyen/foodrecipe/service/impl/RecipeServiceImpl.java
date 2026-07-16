@@ -3,15 +3,19 @@ package com.nguyen.foodrecipe.service.impl;
 import com.nguyen.foodrecipe.dto.IngredientResponse;
 import com.nguyen.foodrecipe.dto.InstructionRequest;
 import com.nguyen.foodrecipe.dto.InstructionResponse;
+import com.nguyen.foodrecipe.dto.PopularRecipeResponse;
 import com.nguyen.foodrecipe.dto.RecipeDetailResponse;
 import com.nguyen.foodrecipe.dto.RecipeRequest;
 import com.nguyen.foodrecipe.dto.RecipeResponse;
 import com.nguyen.foodrecipe.dto.RecipeSummaryResponse;
+import com.nguyen.foodrecipe.dto.SearchRecipeResponse;
+import com.nguyen.foodrecipe.dto.SimilarRecipeResponse;
 import com.nguyen.foodrecipe.entity.Category;
 import com.nguyen.foodrecipe.entity.Ingredient;
 import com.nguyen.foodrecipe.entity.Instruction;
 import com.nguyen.foodrecipe.entity.Recipe;
 import com.nguyen.foodrecipe.exception.CategoryNotFoundException;
+import com.nguyen.foodrecipe.exception.InvalidPageSizeException;
 import com.nguyen.foodrecipe.exception.RecipeNotFoundException;
 import com.nguyen.foodrecipe.mapper.CategoryMapper;
 import com.nguyen.foodrecipe.mapper.RecipeMapper;
@@ -21,11 +25,17 @@ import com.nguyen.foodrecipe.repository.FavoriteRepository;
 import com.nguyen.foodrecipe.repository.RatingRepository;
 import com.nguyen.foodrecipe.repository.RecipeRepository;
 import com.nguyen.foodrecipe.service.RecipeService;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -167,6 +177,146 @@ public class RecipeServiceImpl implements RecipeService {
 
         return recipeRepository.findByCategoryId(categoryId, pageable)
                 .map(recipeMapper::toSummaryResponse);
+    }
+
+    @Override
+    public Page<SearchRecipeResponse> advancedSearch(String keyword, Long categoryId, String ingredient, Pageable pageable) {
+        log.debug("Advanced search — keyword: {}, categoryId: {}, ingredient: {}", keyword, categoryId, ingredient);
+
+        if (pageable.getPageSize() > 100) {
+            throw new InvalidPageSizeException("Page size must not exceed 100");
+        }
+
+        Sort mappedSort = mapSort(pageable.getSort());
+        Pageable mappedPageable = PageRequest.of(
+                pageable.getPageNumber(), pageable.getPageSize(), mappedSort);
+
+        Page<Object[]> page = recipeRepository.searchRecipesNative(
+                keyword, categoryId, ingredient, mappedPageable);
+
+        List<SearchRecipeResponse> responses = page.getContent().stream()
+                .map(this::toSearchResponse)
+                .toList();
+
+        return new PageImpl<>(responses, mappedPageable, page.getTotalElements());
+    }
+
+    @Override
+    public Page<PopularRecipeResponse> getPopularRecipes(Pageable pageable) {
+        log.debug("Fetching popular recipes — page: {}", pageable.getPageNumber());
+
+        Page<Object[]> page = recipeRepository.findPopularRecipes(pageable);
+
+        List<PopularRecipeResponse> responses = page.getContent().stream()
+                .map(this::toPopularResponse)
+                .toList();
+
+        return new PageImpl<>(responses, pageable, page.getTotalElements());
+    }
+
+    @Override
+    public Page<SearchRecipeResponse> getTopRatedRecipes(Pageable pageable) {
+        log.debug("Fetching top-rated recipes — page: {}", pageable.getPageNumber());
+
+        Page<Object[]> page = recipeRepository.findTopRatedRecipes(pageable);
+
+        List<SearchRecipeResponse> responses = page.getContent().stream()
+                .map(this::toSearchResponse)
+                .toList();
+
+        return new PageImpl<>(responses, pageable, page.getTotalElements());
+    }
+
+    @Override
+    public Page<RecipeSummaryResponse> getLatestRecipes(Pageable pageable) {
+        log.debug("Fetching latest recipes — page: {}", pageable.getPageNumber());
+
+        Pageable sortedByNewest = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        return recipeRepository.findAll(sortedByNewest)
+                .map(recipeMapper::toSummaryResponse);
+    }
+
+    @Override
+    public List<SimilarRecipeResponse> getSimilarRecipes(Long recipeId) {
+        log.debug("Fetching similar recipes for recipe id: {}", recipeId);
+
+        Recipe recipe = recipeRepository.findWithDetailsById(recipeId)
+                .orElseThrow(() -> new RecipeNotFoundException(recipeId));
+
+        List<Object[]> rows = recipeRepository.findSimilarRecipes(
+                recipeId, recipe.getCategory().getId(), PageRequest.of(0, 10));
+
+        return rows.stream().map(this::toSimilarResponse).toList();
+    }
+
+    private SearchRecipeResponse toSearchResponse(Object[] row) {
+        Long id = toLong(row[0]);
+        String title = (String) row[1];
+        String imageUrl = (String) row[2];
+        String categoryName = (String) row[3];
+        LocalDateTime createdAt = row[4] instanceof Timestamp ts ? ts.toLocalDateTime() : null;
+        double averageRating = toDouble(row[5]);
+        long favoriteCount = toLong(row[6]);
+        long commentCount = toLong(row[7]);
+
+        return new SearchRecipeResponse(id, title, imageUrl, categoryName,
+                createdAt, averageRating, favoriteCount, commentCount);
+    }
+
+    private PopularRecipeResponse toPopularResponse(Object[] row) {
+        Long id = toLong(row[0]);
+        String title = (String) row[1];
+        String imageUrl = (String) row[2];
+        String categoryName = (String) row[3];
+        double averageRating = toDouble(row[4]);
+        long favoriteCount = toLong(row[5]);
+        long commentCount = toLong(row[6]);
+        double popularityScore = toDouble(row[7]);
+
+        return new PopularRecipeResponse(id, title, imageUrl, categoryName,
+                averageRating, favoriteCount, commentCount, popularityScore);
+    }
+
+    private SimilarRecipeResponse toSimilarResponse(Object[] row) {
+        Long id = toLong(row[0]);
+        String title = (String) row[1];
+        String imageUrl = (String) row[2];
+        String categoryName = (String) row[3];
+        double averageRating = toDouble(row[4]);
+
+        return new SimilarRecipeResponse(id, title, imageUrl, categoryName, averageRating);
+    }
+
+    private static long toLong(Object value) {
+        if (value == null) return 0L;
+        if (value instanceof Number n) return n.longValue();
+        return Long.parseLong(value.toString());
+    }
+
+    private static double toDouble(Object value) {
+        if (value == null) return 0.0;
+        if (value instanceof Number n) return n.doubleValue();
+        return Double.parseDouble(value.toString());
+    }
+
+    private static Sort mapSort(Sort sort) {
+        if (sort == null || sort.isUnsorted()) return Sort.unsorted();
+        List<Sort.Order> mapped = new ArrayList<>();
+        for (Sort.Order order : sort) {
+            String property = switch (order.getProperty()) {
+                case "createdAt" -> "created_at";
+                case "averageRating" -> "avg_rating";
+                case "favoriteCount" -> "fav_count";
+                case "commentCount" -> "com_count";
+                default -> order.getProperty();
+            };
+            mapped.add(new Sort.Order(order.getDirection(), property));
+        }
+        return Sort.by(mapped);
     }
 
     private void addIngredientsToRecipe(Recipe recipe, RecipeRequest request) {

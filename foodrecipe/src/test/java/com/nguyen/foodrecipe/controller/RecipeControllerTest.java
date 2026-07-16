@@ -2,8 +2,11 @@ package com.nguyen.foodrecipe.controller;
 
 import com.nguyen.foodrecipe.dto.IngredientResponse;
 import com.nguyen.foodrecipe.dto.InstructionResponse;
+import com.nguyen.foodrecipe.dto.PopularRecipeResponse;
 import com.nguyen.foodrecipe.dto.RecipeDetailResponse;
 import com.nguyen.foodrecipe.dto.RecipeSummaryResponse;
+import com.nguyen.foodrecipe.dto.SearchRecipeResponse;
+import com.nguyen.foodrecipe.dto.SimilarRecipeResponse;
 import com.nguyen.foodrecipe.exception.GlobalExceptionHandler;
 import com.nguyen.foodrecipe.exception.RecipeNotFoundException;
 import com.nguyen.foodrecipe.security.CustomUserDetailsService;
@@ -22,10 +25,10 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -132,21 +135,150 @@ class RecipeControllerTest {
     }
 
     @Test
-    void searchRecipes_ShouldReturnMatchingResults() throws Exception {
-        RecipeSummaryResponse recipe = new RecipeSummaryResponse(3L, "Pasta Carbonara", "http://example.com/pasta.jpg", "Italian");
-        Page<RecipeSummaryResponse> page = new PageImpl<>(List.of(recipe));
+    void searchRecipes_ByKeyword_ShouldReturnMatchingResults() throws Exception {
+        SearchRecipeResponse recipe = new SearchRecipeResponse(
+                3L, "Pasta Carbonara", "http://example.com/pasta.jpg", "Italian",
+                LocalDateTime.now(), 4.5, 10, 5);
+        Page<SearchRecipeResponse> page = new PageImpl<>(List.of(recipe));
 
-        given(recipeService.searchRecipes(eq("pasta"), any(Pageable.class))).willReturn(page);
+        given(recipeService.advancedSearch(eq("pasta"), isNull(), isNull(), any(Pageable.class)))
+                .willReturn(page);
 
         mockMvc.perform(get("/api/recipes/search?keyword=pasta"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.content[0].title").value("Pasta Carbonara"));
+                .andExpect(jsonPath("$.data.content[0].title").value("Pasta Carbonara"))
+                .andExpect(jsonPath("$.data.content[0].averageRating").value(4.5));
     }
 
     @Test
-    void searchRecipes_WithoutKeyword_ShouldReturn400() throws Exception {
+    void searchRecipes_ByKeywordAndCategory_ShouldFilterByBoth() throws Exception {
+        SearchRecipeResponse recipe = new SearchRecipeResponse(
+                4L, "Chicken Curry", "http://example.com/curry.jpg", "Curry",
+                LocalDateTime.now(), 4.2, 15, 8);
+        Page<SearchRecipeResponse> page = new PageImpl<>(List.of(recipe));
+
+        given(recipeService.advancedSearch(eq("chicken"), eq(2L), isNull(), any(Pageable.class)))
+                .willReturn(page);
+
+        mockMvc.perform(get("/api/recipes/search?keyword=chicken&categoryId=2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content[0].title").value("Chicken Curry"));
+    }
+
+    @Test
+    void searchRecipes_ByIngredient_ShouldReturnMatchingResults() throws Exception {
+        SearchRecipeResponse recipe = new SearchRecipeResponse(
+                5L, "Garlic Bread", "http://example.com/bread.jpg", "Appetizer",
+                LocalDateTime.now(), 4.0, 20, 3);
+        Page<SearchRecipeResponse> page = new PageImpl<>(List.of(recipe));
+
+        given(recipeService.advancedSearch(isNull(), isNull(), eq("garlic"), any(Pageable.class)))
+                .willReturn(page);
+
+        mockMvc.perform(get("/api/recipes/search?ingredient=garlic"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content[0].title").value("Garlic Bread"));
+    }
+
+    @Test
+    void searchRecipes_WithoutFilters_ShouldReturnAll() throws Exception {
+        SearchRecipeResponse r1 = new SearchRecipeResponse(
+                1L, "Recipe A", "http://example.com/a.jpg", "Cat1",
+                LocalDateTime.now(), 3.0, 5, 1);
+        SearchRecipeResponse r2 = new SearchRecipeResponse(
+                2L, "Recipe B", "http://example.com/b.jpg", "Cat2",
+                LocalDateTime.now(), 4.0, 8, 2);
+        Page<SearchRecipeResponse> page = new PageImpl<>(List.of(r1, r2));
+
+        given(recipeService.advancedSearch(isNull(), isNull(), isNull(), any(Pageable.class)))
+                .willReturn(page);
+
         mockMvc.perform(get("/api/recipes/search"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content.length()").value(2));
+    }
+
+    @Test
+    void searchRecipes_CombinedFilters_ShouldReturnFilteredResults() throws Exception {
+        SearchRecipeResponse recipe = new SearchRecipeResponse(
+                6L, "Chicken Alfredo", "http://example.com/alfredo.jpg", "Italian",
+                LocalDateTime.now(), 4.8, 30, 12);
+        Page<SearchRecipeResponse> page = new PageImpl<>(List.of(recipe));
+
+        given(recipeService.advancedSearch(eq("chicken"), eq(1L), eq("garlic"), any(Pageable.class)))
+                .willReturn(page);
+
+        mockMvc.perform(get("/api/recipes/search?keyword=chicken&categoryId=1&ingredient=garlic"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content[0].title").value("Chicken Alfredo"));
+    }
+
+    @Test
+    void getPopularRecipes_ShouldReturnWeightedResults() throws Exception {
+        PopularRecipeResponse recipe = new PopularRecipeResponse(
+                1L, "Popular Dish", "http://example.com/pop.jpg", "Main",
+                4.5, 100, 50, 4.5 * 3 + 100 * 2 + 50);
+        Page<PopularRecipeResponse> page = new PageImpl<>(List.of(recipe));
+
+        given(recipeService.getPopularRecipes(any(Pageable.class))).willReturn(page);
+
+        mockMvc.perform(get("/api/recipes/popular"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content[0].title").value("Popular Dish"))
+                .andExpect(jsonPath("$.data.content[0].popularityScore").value(263.5));
+    }
+
+    @Test
+    void getTopRatedRecipes_ShouldReturnByRatingDesc() throws Exception {
+        SearchRecipeResponse recipe = new SearchRecipeResponse(
+                1L, "Top Dish", "http://example.com/top.jpg", "Main",
+                LocalDateTime.now(), 5.0, 50, 20);
+        Page<SearchRecipeResponse> page = new PageImpl<>(List.of(recipe));
+
+        given(recipeService.getTopRatedRecipes(any(Pageable.class))).willReturn(page);
+
+        mockMvc.perform(get("/api/recipes/top-rated"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content[0].title").value("Top Dish"))
+                .andExpect(jsonPath("$.data.content[0].averageRating").value(5.0));
+    }
+
+    @Test
+    void getLatestRecipes_ShouldReturnNewestFirst() throws Exception {
+        RecipeSummaryResponse recipe = new RecipeSummaryResponse(
+                1L, "New Recipe", "http://example.com/new.jpg", "Dessert");
+        Page<RecipeSummaryResponse> page = new PageImpl<>(List.of(recipe));
+
+        given(recipeService.getLatestRecipes(any(Pageable.class))).willReturn(page);
+
+        mockMvc.perform(get("/api/recipes/latest"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content[0].title").value("New Recipe"));
+    }
+
+    @Test
+    void getSimilarRecipes_ShouldReturnRecommendedRecipes() throws Exception {
+        SimilarRecipeResponse r1 = new SimilarRecipeResponse(
+                2L, "Similar Dish", "http://example.com/sim.jpg", "Italian", 4.3);
+        SimilarRecipeResponse r2 = new SimilarRecipeResponse(
+                3L, "Related Dish", "http://example.com/rel.jpg", "Italian", 4.1);
+        List<SimilarRecipeResponse> list = List.of(r1, r2);
+
+        given(recipeService.getSimilarRecipes(1L)).willReturn(list);
+
+        mockMvc.perform(get("/api/recipes/1/similar"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[0].title").value("Similar Dish"))
+                .andExpect(jsonPath("$.data[1].title").value("Related Dish"));
     }
 }

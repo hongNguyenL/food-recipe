@@ -123,6 +123,16 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Invalid username/email or password"));
     }
 
+    @ExceptionHandler(InvalidPageSizeException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidPageSize(
+            InvalidPageSizeException ex) {
+
+        log.warn("Invalid page size: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiResponse<Void>> handleMissingParam(
             MissingServletRequestParameterException ex) {
