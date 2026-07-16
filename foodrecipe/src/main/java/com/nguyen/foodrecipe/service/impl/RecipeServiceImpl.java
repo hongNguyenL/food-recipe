@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -55,6 +57,7 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"recipeDetails", "recipeSummaries", "popularRecipes", "topRatedRecipes"}, allEntries = true)
     public RecipeResponse createRecipe(RecipeRequest request) {
         log.debug("Creating recipe with title: {}", request.title());
 
@@ -79,6 +82,7 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"recipeDetails", "recipeSummaries", "popularRecipes", "topRatedRecipes"}, allEntries = true)
     public RecipeResponse updateRecipe(Long id, RecipeRequest request) {
         log.debug("Updating recipe id: {}", id);
 
@@ -107,6 +111,7 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"recipeDetails", "recipeSummaries", "popularRecipes", "topRatedRecipes"}, allEntries = true)
     public void deleteRecipe(Long id) {
         log.debug("Deleting recipe id: {}", id);
 
@@ -119,6 +124,7 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     @Override
+    @Cacheable(value = "recipeDetails", key = "#id")
     public RecipeDetailResponse getRecipeById(Long id) {
         log.debug("Fetching recipe id: {}", id);
 
@@ -202,6 +208,7 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     @Override
+    @Cacheable(value = "popularRecipes", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<PopularRecipeResponse> getPopularRecipes(Pageable pageable) {
         log.debug("Fetching popular recipes — page: {}", pageable.getPageNumber());
 

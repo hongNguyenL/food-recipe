@@ -1,24 +1,34 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: foodrecipe_db
+  redis:
+    image: redis:7-alpine
+    container_name: foodrecipe_redis
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: foodrecipe_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      TZ: Asia/Ho_Chi_Minh
-      PGTZ: Asia/Ho_Chi_Minh
     ports:
-      - "5432:5432"
-    volumes:
-      - foodrecipe_pgdata:/var/lib/postgresql/data
+      - "6379:6379"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d foodrecipe_db"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
       retries: 5
 
-volumes:
-  foodrecipe_pgdata:
-    driver: local
+  backend:
+    build: .
+    container_name: foodrecipe_api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CACHE_TTL: ${CACHE_TTL:-3600000}
+      BATCH_FETCH_SIZE: ${BATCH_FETCH_SIZE:-20}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+    depends_on:
+      redis:
+        condition: service_healthy

@@ -11,6 +11,8 @@ import com.nguyen.foodrecipe.repository.CategoryRepository;
 import com.nguyen.foodrecipe.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,7 @@ public class CategoryServiceImpl implements CategoryService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "categories", allEntries = true)
     public CategoryResponse createCategory(CategoryRequest request) {
         log.debug("Creating category with name: {}", request.name());
 
@@ -56,6 +59,7 @@ public class CategoryServiceImpl implements CategoryService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "categories", allEntries = true)
     public CategoryResponse updateCategory(Long id, CategoryRequest request) {
         log.debug("Updating category id: {}", id);
 
@@ -81,6 +85,7 @@ public class CategoryServiceImpl implements CategoryService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "categories", allEntries = true)
     public void deleteCategory(Long id) {
         log.debug("Deleting category id: {}", id);
 
@@ -101,6 +106,7 @@ public class CategoryServiceImpl implements CategoryService {
      * {@inheritDoc}
      */
     @Override
+    @Cacheable(value = "categories")
     public List<CategoryResponse> getAllCategories() {
         log.debug("Fetching all categories");
 
