@@ -4,6 +4,7 @@ import com.nguyen.foodrecipe.dto.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -13,17 +14,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Global exception handler that intercepts all controller exceptions
- * and returns consistent {@link ApiResponse} JSON payloads.
- */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /**
-     * Handles bean-validation failures (e.g. {@code @NotBlank}, {@code @Size}).
-     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(
             MethodArgumentNotValidException ex) {
@@ -39,9 +33,6 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Validation failed", errors));
     }
 
-    /**
-     * Handles recipe-not-found scenarios.
-     */
     @ExceptionHandler(RecipeNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleRecipeNotFound(
             RecipeNotFoundException ex) {
@@ -52,9 +43,6 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
-    /**
-     * Handles category-not-found scenarios.
-     */
     @ExceptionHandler(CategoryNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleCategoryNotFound(
             CategoryNotFoundException ex) {
@@ -73,6 +61,36 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateUsernameException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDuplicateUsername(
+            DuplicateUsernameException ex) {
+
+        log.warn("Duplicate username: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDuplicateEmail(
+            DuplicateEmailException ex) {
+
+        log.warn("Duplicate email: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBadCredentials(
+            BadCredentialsException ex) {
+
+        log.warn("Invalid credentials: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error("Invalid username/email or password"));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)

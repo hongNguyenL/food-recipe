@@ -2,6 +2,8 @@ package com.nguyen.foodrecipe.controller;
 
 import com.nguyen.foodrecipe.dto.CategoryResponse;
 import com.nguyen.foodrecipe.dto.RecipeSummaryResponse;
+import com.nguyen.foodrecipe.security.CustomUserDetailsService;
+import com.nguyen.foodrecipe.security.JwtService;
 import com.nguyen.foodrecipe.service.CategoryService;
 import com.nguyen.foodrecipe.service.RecipeService;
 import org.junit.jupiter.api.Test;
@@ -46,6 +48,16 @@ class CategoryControllerTest {
         @Bean
         RecipeService recipeService() {
             return mock(RecipeService.class);
+        }
+
+        @Bean
+        JwtService jwtService() {
+            return mock(JwtService.class);
+        }
+
+        @Bean
+        CustomUserDetailsService userDetailsService() {
+            return mock(CustomUserDetailsService.class);
         }
     }
 

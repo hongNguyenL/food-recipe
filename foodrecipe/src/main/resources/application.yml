@@ -34,6 +34,12 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
 
+application:
+  security:
+    jwt:
+      secret-key: daf66e01593f61a15b857cf432aae03a005812b31234e24f36542c8c608b8c72
+      expiration-ms: 86400000
+
 logging:
   level:
     com.nguyen.foodrecipe: DEBUG
