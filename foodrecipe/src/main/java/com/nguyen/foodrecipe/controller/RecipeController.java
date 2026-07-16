@@ -1,26 +1,31 @@
 package com.nguyen.foodrecipe.controller;
 
-import com.nguyen.foodrecipe.dto.ApiResponse;
-import com.nguyen.foodrecipe.dto.RecipeDetailResponse;
-import com.nguyen.foodrecipe.dto.RecipeSummaryResponse;
-import com.nguyen.foodrecipe.service.RecipeService;
+import com.nguyen.foodrecipe.dto.*;
+import com.nguyen.foodrecipe.security.UserPrincipal;
+import com.nguyen.foodrecipe.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/recipes")
 @RequiredArgsConstructor
-@Tag(name = "Recipe", description = "Recipe browsing APIs")
+@Tag(name = "Recipe", description = "Recipe browsing and interaction APIs")
 public class RecipeController {
 
     private final RecipeService recipeService;
+    private final FavoriteService favoriteService;
+    private final RatingService ratingService;
+    private final CommentService commentService;
 
     @GetMapping
     @Operation(summary = "Get all recipes",
@@ -34,7 +39,7 @@ public class RecipeController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get recipe by ID",
-            description = "Retrieve complete recipe details including category, ingredients, and instructions")
+            description = "Retrieve complete recipe details including category, ingredients, instructions, and statistics")
     public ResponseEntity<ApiResponse<RecipeDetailResponse>> getRecipeById(@PathVariable Long id) {
         RecipeDetailResponse response = recipeService.getRecipeById(id);
         return ResponseEntity.ok(ApiResponse.success("Recipe fetched successfully", response));
@@ -48,5 +53,64 @@ public class RecipeController {
             @PageableDefault(size = 20, sort = "title") Pageable pageable) {
         Page<RecipeSummaryResponse> page = recipeService.searchRecipes(keyword, pageable);
         return ResponseEntity.ok(ApiResponse.success("Search results fetched successfully", page));
+    }
+
+    @PostMapping("/{id}/favorite")
+    @Operation(summary = "Add recipe to favorites", description = "Favorite a recipe. Returns 409 if already favorited.")
+    public ResponseEntity<ApiResponse<Void>> addFavorite(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        favoriteService.addFavorite(userPrincipal.getId(), id);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Recipe added to favorites"));
+    }
+
+    @DeleteMapping("/{id}/favorite")
+    @Operation(summary = "Remove recipe from favorites", description = "Unfavorite a recipe.")
+    public ResponseEntity<ApiResponse<Void>> removeFavorite(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        favoriteService.removeFavorite(userPrincipal.getId(), id);
+        return ResponseEntity.ok(ApiResponse.success("Recipe removed from favorites"));
+    }
+
+    @PostMapping("/{id}/rating")
+    @Operation(summary = "Rate a recipe", description = "Rate a recipe (1-5). Updates the existing rating if already rated.")
+    public ResponseEntity<ApiResponse<RatingResponse>> rateRecipe(
+            @PathVariable Long id,
+            @Valid @RequestBody RatingRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        RatingResponse response = ratingService.rateRecipe(userPrincipal.getId(), id, request.rating());
+        return ResponseEntity.ok(ApiResponse.success("Recipe rated successfully", response));
+    }
+
+    @GetMapping("/{id}/rating")
+    @Operation(summary = "Get recipe rating", description = "Returns average rating, total ratings, and current user's rating (if authenticated).")
+    public ResponseEntity<ApiResponse<RecipeRatingResponse>> getRecipeRating(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        Long userId = (userPrincipal != null) ? userPrincipal.getId() : null;
+        RecipeRatingResponse response = ratingService.getRecipeRating(id, userId);
+        return ResponseEntity.ok(ApiResponse.success("Recipe rating fetched successfully", response));
+    }
+
+    @PostMapping("/{id}/comments")
+    @Operation(summary = "Add comment to recipe", description = "Create a comment on a recipe.")
+    public ResponseEntity<ApiResponse<CommentResponse>> addComment(
+            @PathVariable Long id,
+            @Valid @RequestBody CommentRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        CommentResponse response = commentService.createComment(userPrincipal.getId(), id, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Comment added successfully", response));
+    }
+
+    @GetMapping("/{id}/comments")
+    @Operation(summary = "Get recipe comments", description = "Retrieve paginated comments for a recipe, ordered by newest first.")
+    public ResponseEntity<ApiResponse<Page<CommentResponse>>> getRecipeComments(
+            @PathVariable Long id,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<CommentResponse> page = commentService.getRecipeComments(id, pageable);
+        return ResponseEntity.ok(ApiResponse.success("Comments fetched successfully", page));
     }
 }

@@ -1,6 +1,8 @@
 package com.nguyen.foodrecipe.service.impl;
 
+import com.nguyen.foodrecipe.dto.IngredientResponse;
 import com.nguyen.foodrecipe.dto.InstructionRequest;
+import com.nguyen.foodrecipe.dto.InstructionResponse;
 import com.nguyen.foodrecipe.dto.RecipeDetailResponse;
 import com.nguyen.foodrecipe.dto.RecipeRequest;
 import com.nguyen.foodrecipe.dto.RecipeResponse;
@@ -11,10 +13,15 @@ import com.nguyen.foodrecipe.entity.Instruction;
 import com.nguyen.foodrecipe.entity.Recipe;
 import com.nguyen.foodrecipe.exception.CategoryNotFoundException;
 import com.nguyen.foodrecipe.exception.RecipeNotFoundException;
+import com.nguyen.foodrecipe.mapper.CategoryMapper;
 import com.nguyen.foodrecipe.mapper.RecipeMapper;
 import com.nguyen.foodrecipe.repository.CategoryRepository;
+import com.nguyen.foodrecipe.repository.CommentRepository;
+import com.nguyen.foodrecipe.repository.FavoriteRepository;
+import com.nguyen.foodrecipe.repository.RatingRepository;
 import com.nguyen.foodrecipe.repository.RecipeRepository;
 import com.nguyen.foodrecipe.service.RecipeService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,7 +37,11 @@ public class RecipeServiceImpl implements RecipeService {
 
     private final RecipeRepository recipeRepository;
     private final CategoryRepository categoryRepository;
+    private final FavoriteRepository favoriteRepository;
+    private final RatingRepository ratingRepository;
+    private final CommentRepository commentRepository;
     private final RecipeMapper recipeMapper;
+    private final CategoryMapper categoryMapper;
 
     @Override
     @Transactional
@@ -104,7 +115,24 @@ public class RecipeServiceImpl implements RecipeService {
         Recipe recipe = recipeRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new RecipeNotFoundException(id));
 
-        return recipeMapper.toDetailResponse(recipe);
+        long favoriteCount = favoriteRepository.countByRecipeId(id);
+        Double avg = ratingRepository.findAverageRatingByRecipeId(id);
+        double averageRating = (avg != null) ? Math.round(avg * 10.0) / 10.0 : 0.0;
+        long totalRatings = ratingRepository.countByRecipeId(id);
+        long totalComments = commentRepository.countByRecipeId(id);
+
+        List<IngredientResponse> ingredientResponses = recipe.getIngredients().stream()
+                .map(recipeMapper::toIngredientResponse).toList();
+        List<InstructionResponse> instructionResponses = recipe.getInstructions().stream()
+                .map(recipeMapper::toInstructionResponse).toList();
+
+        return new RecipeDetailResponse(
+                recipe.getId(), recipe.getTitle(), recipe.getImageUrl(),
+                recipe.getDescription(),
+                categoryMapper.toResponse(recipe.getCategory()),
+                ingredientResponses, instructionResponses,
+                favoriteCount, averageRating, totalRatings, totalComments
+        );
     }
 
     @Override

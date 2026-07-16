@@ -9,5 +9,9 @@ public record RecipeDetailResponse(
     String description,
     CategoryResponse category,
     List<IngredientResponse> ingredients,
-    List<InstructionResponse> instructions
+    List<InstructionResponse> instructions,
+    long favoriteCount,
+    double averageRating,
+    long totalRatings,
+    long totalComments
 ) {}

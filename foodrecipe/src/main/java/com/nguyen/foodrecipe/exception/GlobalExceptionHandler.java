@@ -83,6 +83,36 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(DuplicateFavoriteException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDuplicateFavorite(
+            DuplicateFavoriteException ex) {
+
+        log.warn("Duplicate favorite: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(CommentNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleCommentNotFound(
+            CommentNotFoundException ex) {
+
+        log.warn("Comment not found: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(UnauthorizedModificationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnauthorizedModification(
+            UnauthorizedModificationException ex) {
+
+        log.warn("Unauthorized modification: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadCredentials(
             BadCredentialsException ex) {

@@ -1,11 +1,16 @@
 package com.nguyen.foodrecipe.controller;
 
+import com.nguyen.foodrecipe.dto.IngredientResponse;
+import com.nguyen.foodrecipe.dto.InstructionResponse;
 import com.nguyen.foodrecipe.dto.RecipeDetailResponse;
 import com.nguyen.foodrecipe.dto.RecipeSummaryResponse;
 import com.nguyen.foodrecipe.exception.GlobalExceptionHandler;
 import com.nguyen.foodrecipe.exception.RecipeNotFoundException;
 import com.nguyen.foodrecipe.security.CustomUserDetailsService;
 import com.nguyen.foodrecipe.security.JwtService;
+import com.nguyen.foodrecipe.service.CommentService;
+import com.nguyen.foodrecipe.service.FavoriteService;
+import com.nguyen.foodrecipe.service.RatingService;
 import com.nguyen.foodrecipe.service.RecipeService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +46,21 @@ class RecipeControllerTest {
         @Bean
         RecipeService recipeService() {
             return mock(RecipeService.class);
+        }
+
+        @Bean
+        FavoriteService favoriteService() {
+            return mock(FavoriteService.class);
+        }
+
+        @Bean
+        RatingService ratingService() {
+            return mock(RatingService.class);
+        }
+
+        @Bean
+        CommentService commentService() {
+            return mock(CommentService.class);
         }
 
         @Bean
@@ -87,7 +107,8 @@ class RecipeControllerTest {
     void getRecipeById_WhenFound_ShouldReturnRecipeDetail() throws Exception {
         RecipeDetailResponse detail = new RecipeDetailResponse(
                 1L, "Test Recipe", "http://example.com/img.jpg", "Description",
-                null, List.of(), List.of()
+                null, List.of(), List.of(),
+                0L, 0.0, 0L, 0L
         );
 
         given(recipeService.getRecipeById(1L)).willReturn(detail);
