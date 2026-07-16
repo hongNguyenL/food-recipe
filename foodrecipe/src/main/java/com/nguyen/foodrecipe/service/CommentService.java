@@ -14,4 +14,8 @@ public interface CommentService {
     void deleteComment(Long userId, Long commentId, String userRole);
 
     Page<CommentResponse> getRecipeComments(Long recipeId, Pageable pageable);
+
+    void adminDeleteComment(Long commentId);
+
+    Page<CommentResponse> getAllComments(String keyword, Pageable pageable);
 }

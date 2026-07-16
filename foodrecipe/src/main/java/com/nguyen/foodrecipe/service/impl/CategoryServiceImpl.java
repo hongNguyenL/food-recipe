@@ -3,6 +3,7 @@ package com.nguyen.foodrecipe.service.impl;
 import com.nguyen.foodrecipe.dto.CategoryRequest;
 import com.nguyen.foodrecipe.dto.CategoryResponse;
 import com.nguyen.foodrecipe.entity.Category;
+import com.nguyen.foodrecipe.exception.CategoryHasRecipesException;
 import com.nguyen.foodrecipe.exception.CategoryNotFoundException;
 import com.nguyen.foodrecipe.exception.DuplicateCategoryException;
 import com.nguyen.foodrecipe.mapper.CategoryMapper;
@@ -85,6 +86,11 @@ public class CategoryServiceImpl implements CategoryService {
 
         if (!categoryRepository.existsById(id)) {
             throw new CategoryNotFoundException(id);
+        }
+
+        long recipeCount = categoryRepository.countRecipesByCategoryId(id);
+        if (recipeCount > 0) {
+            throw new CategoryHasRecipesException(id);
         }
 
         categoryRepository.deleteById(id);

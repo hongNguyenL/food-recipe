@@ -20,4 +20,7 @@ public interface RatingRepository extends JpaRepository<Rating, Long> {
 
     @Query("SELECT r.rating FROM Rating r WHERE r.user.id = :userId AND r.recipe.id = :recipeId")
     Optional<Integer> findRatingByUserIdAndRecipeId(@Param("userId") Long userId, @Param("recipeId") Long recipeId);
+
+    @Query("SELECT AVG(r.rating) FROM Rating r")
+    Optional<Double> findGlobalAverageRating();
 }

@@ -86,4 +86,25 @@ public class CommentServiceImpl implements CommentService {
         return commentRepository.findByRecipeIdOrderByCreatedAtDesc(recipeId, pageable)
                 .map(commentMapper::toResponse);
     }
+
+    @Override
+    @Transactional
+    public void adminDeleteComment(Long commentId) {
+        log.debug("Admin deleting comment: id={}", commentId);
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new CommentNotFoundException(commentId));
+        commentRepository.delete(comment);
+        log.info("Admin deleted comment: id={}", commentId);
+    }
+
+    @Override
+    public Page<CommentResponse> getAllComments(String keyword, Pageable pageable) {
+        log.debug("Admin fetching all comments, keyword: {}", keyword);
+        if (keyword != null && !keyword.isBlank()) {
+            return commentRepository.searchComments(keyword.trim(), pageable)
+                    .map(commentMapper::toResponse);
+        }
+        return commentRepository.findAll(pageable)
+                .map(commentMapper::toResponse);
+    }
 }

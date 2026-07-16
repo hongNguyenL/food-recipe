@@ -113,6 +113,36 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(CategoryHasRecipesException.class)
+    public ResponseEntity<ApiResponse<Void>> handleCategoryHasRecipes(
+            CategoryHasRecipesException ex) {
+
+        log.warn("Category has recipes: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(CannotDisableLastAdminException.class)
+    public ResponseEntity<ApiResponse<Void>> handleCannotDisableLastAdmin(
+            CannotDisableLastAdminException ex) {
+
+        log.warn("Cannot disable last admin: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SelfRoleRemovalException.class)
+    public ResponseEntity<ApiResponse<Void>> handleSelfRoleRemoval(
+            SelfRoleRemovalException ex) {
+
+        log.warn("Self role removal: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadCredentials(
             BadCredentialsException ex) {
@@ -128,6 +158,16 @@ public class GlobalExceptionHandler {
             InvalidPageSizeException ex) {
 
         log.warn("Invalid page size: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(
+            IllegalArgumentException ex) {
+
+        log.warn("Illegal argument: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ex.getMessage()));

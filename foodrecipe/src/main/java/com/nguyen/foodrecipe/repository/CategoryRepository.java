@@ -2,6 +2,8 @@ package com.nguyen.foodrecipe.repository;
 
 import com.nguyen.foodrecipe.entity.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -27,4 +29,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      * @return {@code true} if a category with that name exists
      */
     boolean existsByName(String name);
+
+    @Query("SELECT COUNT(r) FROM Recipe r WHERE r.category.id = :categoryId")
+    long countRecipesByCategoryId(@Param("categoryId") Long categoryId);
 }
