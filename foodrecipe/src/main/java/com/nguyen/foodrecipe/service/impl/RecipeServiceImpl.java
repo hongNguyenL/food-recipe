@@ -277,13 +277,16 @@ public class RecipeServiceImpl implements RecipeService {
                 .toList();
 
         String[] ingredients = cleaned.toArray(new String[0]);
+        int appliedMinMatch = request.minMatchPercentage() != null
+                ? request.minMatchPercentage()
+                : 70;
         Pageable pageable = PageRequest.of(request.page(), request.size());
 
         Page<Object[]> page = recipeRepository.pantrySearch(
-                ingredients, request.minMatchPercentage(), request.categoryId(), pageable);
+                ingredients, appliedMinMatch, request.categoryId(), pageable);
 
         List<PantrySearchResult> results = page.getContent().stream()
-                .map(this::toPantryResult)
+                .map(row -> toPantryResult(row, appliedMinMatch))
                 .toList();
 
         return new PageImpl<>(results, pageable, page.getTotalElements());
@@ -328,7 +331,7 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     @SuppressWarnings("unchecked")
-    private PantrySearchResult toPantryResult(Object[] row) {
+    private PantrySearchResult toPantryResult(Object[] row, int appliedMinMatch) {
         Long id = toLong(row[0]);
         String title = (String) row[1];
         String imageUrl = (String) row[2];
@@ -346,7 +349,8 @@ public class RecipeServiceImpl implements RecipeService {
         List<String> missing = missingArr != null ? List.of(missingArr) : List.of();
 
         return new PantrySearchResult(id, title, imageUrl, categoryName, averageRating,
-                matchPercentage, matched, missing, matchedCount, missingCount, totalCount);
+                matchPercentage, matched, missing, matchedCount, missingCount, totalCount,
+                appliedMinMatch);
     }
 
     private static long toLong(Object value) {

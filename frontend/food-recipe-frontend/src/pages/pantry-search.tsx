@@ -7,13 +7,17 @@ import { useAuth } from '@/hooks/use-auth'
 import { IngredientInput } from '@/components/ui/ingredient-input'
 import { SuggestedIngredients } from '@/components/ui/suggested-ingredients'
 import { PantryFilters } from '@/components/ui/pantry-filters'
+import { FilterSummary } from '@/components/ui/filter-summary'
 import { PantryRecipeCard } from '@/components/ui/pantry-recipe-card'
 import { Pagination } from '@/components/ui/pagination'
 import { Button } from '@/components/ui/button'
-import { EmptyPantryState, NoResultsState, SearchSkeleton, ErrorMessage } from '@/components/ui/pantry-states'
+import { EmptyPantryState, SearchSkeleton, ErrorMessage } from '@/components/ui/pantry-states'
+import { NoResultsSuggestion } from '@/components/ui/no-results-suggestion'
 import { Search, LogIn } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 const STORAGE_KEY = 'pantry-ingredients'
+const DEFAULT_MIN_MATCH = 70
 
 export default function PantrySearchPage() {
   const navigate = useNavigate()
@@ -26,7 +30,7 @@ export default function PantrySearchPage() {
   })
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(20)
-  const [minMatch, setMinMatch] = useState(0)
+  const [minMatch, setMinMatch] = useState(DEFAULT_MIN_MATCH)
   const [categoryId, setCategoryId] = useState('')
   const [searched, setSearched] = useState(false)
 
@@ -55,6 +59,9 @@ export default function PantrySearchPage() {
     queryFn: () => categoriesApi.list(),
   })
   const categories = catData?.data || []
+  const selectedCategoryName = categoryId
+    ? categories.find((c) => String(c.id) === categoryId)?.name ?? null
+    : null
 
   const searchQuery = useQuery({
     queryKey: ['pantry-search', { pantry, page, pageSize, minMatch, categoryId }],
@@ -62,7 +69,7 @@ export default function PantrySearchPage() {
       ingredients: pantry,
       page,
       size: pageSize,
-      minMatchPercentage: minMatch > 0 ? minMatch : undefined,
+      minMatchPercentage: minMatch,
       categoryId: categoryId ? Number(categoryId) : undefined,
     }),
     enabled: searched && pantry.length > 0 && isAuthenticated,
@@ -70,20 +77,32 @@ export default function PantrySearchPage() {
   })
 
   const handleSearch = () => {
-    if (pantry.length === 0) return
+    if (pantry.length === 0) {
+      toast.error('Add at least one ingredient to search')
+      return
+    }
     setPage(0)
     setSearched(true)
   }
 
   const handleClear = () => {
     setPage(0)
-    setMinMatch(0)
+    setMinMatch(DEFAULT_MIN_MATCH)
     setCategoryId('')
     setSearched(false)
   }
 
+  const handleLowerThreshold = (value: number) => {
+    setMinMatch(value)
+    if (pantry.length > 0 && isAuthenticated) {
+      setPage(0)
+      setSearched(true)
+    }
+  }
+
   const results = searchQuery.data?.data
   const hasSearched = searched && pantry.length > 0
+  const totalElements = results?.totalElements ?? 0
 
   return (
     <div className="space-y-6">
@@ -114,13 +133,22 @@ export default function PantrySearchPage() {
 
       <PantryFilters
         minMatch={minMatch}
-        onMinMatchChange={(v) => { setMinMatch(v); setPage(0); if (hasSearched) setSearched(true) }}
+        onMinMatchChange={(v) => { setMinMatch(v); setPage(0) }}
         categoryId={categoryId}
-        onCategoryChange={(v) => { setCategoryId(v); setPage(0); if (hasSearched) setSearched(true) }}
+        onCategoryChange={(v) => { setCategoryId(v); setPage(0) }}
         pageSize={pageSize}
         onPageSizeChange={(v) => { setPageSize(v); setPage(0) }}
         categories={categories}
       />
+
+      {hasSearched && (
+        <FilterSummary
+          ingredients={pantry}
+          minMatch={minMatch}
+          categoryName={selectedCategoryName}
+          onClear={handleClear}
+        />
+      )}
 
       {!hasSearched && !searchQuery.isLoading && !isAuthenticated && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -141,12 +169,28 @@ export default function PantrySearchPage() {
 
       {hasSearched && !searchQuery.isLoading && !searchQuery.isError && results && (
         results.content.length === 0 ? (
-          <NoResultsState onClear={handleClear} />
+          <NoResultsSuggestion
+            minMatch={minMatch}
+            onLowerThreshold={handleLowerThreshold}
+            onClear={handleClear}
+          />
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-[var(--muted-foreground)]">
-              Found {results.totalElements} recipe{results.totalElements !== 1 ? 's' : ''}
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+              <p className="text-sm text-[var(--muted-foreground)]">
+                Found {totalElements} recipe{totalElements !== 1 ? 's' : ''}
+                {totalElements > 1000 && (
+                  <span className="ml-2 text-xs text-[var(--primary)]">
+                    Showing the best matching recipes first.
+                  </span>
+                )}
+              </p>
+              {totalElements < 20 && totalElements > 0 && (
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  Try lowering the minimum match percentage to discover more recipes.
+                </p>
+              )}
+            </div>
             <div className="space-y-4">
               {results.content.map((r) => (
                 <PantryRecipeCard key={r.recipeId} result={r} />

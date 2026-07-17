@@ -1,4 +1,5 @@
 import { Select } from '@/components/ui/select'
+import { MatchPercentageSlider } from '@/components/ui/match-percentage-slider'
 
 interface PantryFiltersProps {
   minMatch: number
@@ -18,21 +19,7 @@ export function PantryFilters({
 }: PantryFiltersProps) {
   return (
     <div className="flex flex-wrap items-end gap-4 rounded-lg border border-[var(--border)] p-4">
-      <div className="space-y-2 min-w-[200px] flex-1">
-        <label htmlFor="min-match" className="text-sm font-medium">
-          Min Match: {minMatch}%
-        </label>
-        <input
-          id="min-match"
-          type="range"
-          min={0}
-          max={100}
-          step={5}
-          value={minMatch}
-          onChange={(e) => onMinMatchChange(Number(e.target.value))}
-          className="w-full accent-[var(--primary)]"
-        />
-      </div>
+      <MatchPercentageSlider value={minMatch} onChange={onMinMatchChange} />
 
       <div className="w-40">
         <Select

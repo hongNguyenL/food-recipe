@@ -217,4 +217,5 @@ export interface PantrySearchResult {
   matchedCount: number
   missingCount: number
   totalIngredients: number
+  appliedMinimumMatchPercentage: number
 }

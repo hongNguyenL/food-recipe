@@ -13,5 +13,6 @@ public record PantrySearchResult(
         List<String> missingIngredients,
         int matchedCount,
         int missingCount,
-        int totalIngredients
+        int totalIngredients,
+        int appliedMinimumMatchPercentage
 ) {}
