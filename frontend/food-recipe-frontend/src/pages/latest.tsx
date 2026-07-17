@@ -44,7 +44,7 @@ export default function LatestPage() {
             ))}
           </div>
           <Pagination
-            page={data.page}
+            page={data.number}
             totalPages={data.totalPages}
             onPageChange={setPage}
           />

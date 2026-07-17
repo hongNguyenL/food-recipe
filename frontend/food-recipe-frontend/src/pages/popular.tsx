@@ -63,7 +63,7 @@ export default function PopularPage() {
             ))}
           </div>
           <Pagination
-            page={data.page}
+            page={data.number}
             totalPages={data.totalPages}
             onPageChange={setPage}
           />

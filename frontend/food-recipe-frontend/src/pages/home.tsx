@@ -73,7 +73,7 @@ export default function Home() {
         </div>
       </section>
 
-      <RecipeSection title="Top Rated" linkTo="/recipes?sort=topRated">
+      <RecipeSection title="Top Rated" linkTo="/top-rated">
         {topRatedQuery.isPending
           ? Array.from({ length: 4 }).map((_, i) => <RecipeCardSkeleton key={i} />)
           : topRatedQuery.isError
@@ -84,7 +84,7 @@ export default function Home() {
         }
       </RecipeSection>
 
-      <RecipeSection title="Popular" linkTo="/recipes?sort=popular">
+      <RecipeSection title="Popular" linkTo="/popular">
         {popularQuery.isPending
           ? Array.from({ length: 4 }).map((_, i) => <RecipeCardSkeleton key={i} />)
           : popularQuery.isError
@@ -95,7 +95,7 @@ export default function Home() {
         }
       </RecipeSection>
 
-      <RecipeSection title="Latest" linkTo="/recipes?sort=latest">
+      <RecipeSection title="Latest" linkTo="/latest">
         {latestQuery.isPending
           ? Array.from({ length: 4 }).map((_, i) => <RecipeCardSkeleton key={i} />)
           : latestQuery.isError

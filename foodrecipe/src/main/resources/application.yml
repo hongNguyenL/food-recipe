@@ -49,6 +49,9 @@ spring:
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
+  cache:
+    type: simple
+
   jpa:
     hibernate:
       ddl-auto: update

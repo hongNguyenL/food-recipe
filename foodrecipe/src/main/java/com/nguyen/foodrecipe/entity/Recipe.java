@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
@@ -59,6 +61,7 @@ public class Recipe {
             orphanRemoval = true,
             fetch = FetchType.LAZY
     )
+    @Fetch(FetchMode.SUBSELECT)
     @BatchSize(size = 20)
     @Builder.Default
     private List<Ingredient> ingredients = new ArrayList<>();
@@ -70,6 +73,7 @@ public class Recipe {
             fetch = FetchType.LAZY
     )
     @OrderBy("stepNumber ASC")
+    @Fetch(FetchMode.SUBSELECT)
     @BatchSize(size = 20)
     @Builder.Default
     private List<Instruction> instructions = new ArrayList<>();

@@ -76,7 +76,7 @@ export default function DashboardPage() {
             </div>
             <div className="mt-6">
               <Pagination
-                page={data.page}
+                page={data.number}
                 totalPages={data.totalPages}
                 onPageChange={setPage}
               />

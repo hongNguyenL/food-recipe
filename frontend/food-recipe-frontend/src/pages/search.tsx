@@ -41,10 +41,7 @@ export default function SearchPage() {
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
-    queryFn: async () => {
-      const res = await categoriesApi.list()
-      return res.data
-    },
+    queryFn: () => categoriesApi.list(),
   })
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -88,7 +85,7 @@ export default function SearchPage() {
 
   const categoryOptions = [
     { value: '', label: 'All Categories' },
-    ...(categoriesData?.map((c) => ({ value: String(c.id), label: c.name })) || []),
+    ...(categoriesData?.data?.map((c) => ({ value: String(c.id), label: c.name })) || []),
   ]
 
   return (
@@ -162,7 +159,7 @@ export default function SearchPage() {
             ))}
           </div>
           <Pagination
-            page={data.page}
+            page={data.number}
             totalPages={data.totalPages}
             onPageChange={(p) => updateParams({ page: String(p) })}
           />

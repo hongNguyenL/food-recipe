@@ -267,6 +267,7 @@ export default function AdminRecipesPage() {
                       src={item.imageUrl}
                       alt={item.title}
                       className="h-10 w-14 rounded object-cover"
+                      referrerPolicy="no-referrer"
                     />
                   ) : (
                     <span className="text-[var(--muted-foreground)]">—</span>
@@ -283,7 +284,7 @@ export default function AdminRecipesPage() {
             keyExtractor={(item) => item.id}
           />
           <Pagination
-            page={data.page}
+            page={data.number}
             totalPages={data.totalPages}
             onPageChange={handlePageChange}
           />

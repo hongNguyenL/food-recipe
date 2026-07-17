@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { RatingStars } from '@/components/ui/rating-stars'
@@ -17,21 +18,23 @@ interface RecipeCardProps {
 export function RecipeCard({ recipe, isFavorited, onToggleFavorite, isFavoriteLoading }: RecipeCardProps) {
   const rating = 'averageRating' in recipe ? (recipe.averageRating ?? 0) : 0
   const favCount = 'favoriteCount' in recipe ? (recipe.favoriteCount ?? 0) : 0
+  const [imgError, setImgError] = useState(false)
 
   return (
     <Link to={`/recipes/${recipe.id}`}>
       <Card className="group overflow-hidden transition-shadow hover:shadow-md">
-        <div className="aspect-video w-full overflow-hidden bg-[var(--muted)]">
-          {recipe.imageUrl ? (
+        <div className="w-full overflow-hidden bg-[var(--muted)]" style={{ height: 200 }}>
+          {recipe.imageUrl && !imgError ? (
             <img
               src={recipe.imageUrl}
               alt={recipe.title}
               className="h-full w-full object-cover transition-transform group-hover:scale-105"
-              loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={() => setImgError(true)}
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-[var(--muted-foreground)]">
-              No Image
+            <div className="flex h-full items-center justify-center text-[var(--muted-foreground)] text-sm p-2 text-center">
+              {recipe.title}
             </div>
           )}
         </div>

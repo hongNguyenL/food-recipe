@@ -59,7 +59,7 @@ export default function CategoryRecipesPage() {
           </div>
           <div className="mt-8">
             <Pagination
-              page={recipes.page}
+              page={recipes.number}
               totalPages={recipes.totalPages}
               onPageChange={setPage}
             />

@@ -45,7 +45,7 @@ export default function TopRatedPage() {
             ))}
           </div>
           <Pagination
-            page={data.page}
+            page={data.number}
             totalPages={data.totalPages}
             onPageChange={setPage}
           />

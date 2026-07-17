@@ -122,6 +122,8 @@ export default function RecipeDetail() {
               src={recipe.imageUrl}
               alt={recipe.title}
               className="h-80 w-full object-cover"
+              referrerPolicy="no-referrer"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
           ) : (
             <div className="flex h-80 items-center justify-center bg-[var(--muted)] text-[var(--muted-foreground)]">
@@ -244,7 +246,7 @@ export default function RecipeDetail() {
                 comments={comments.content}
                 currentUserId={auth.user?.id}
                 isAdmin={auth.isAdmin}
-                page={comments.page}
+                page={comments.number}
                 totalPages={comments.totalPages}
                 onPageChange={setCommentPage}
                 onEdit={handleEditComment}

@@ -34,7 +34,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     @EntityGraph(attributePaths = {"category"})
     Page<Recipe> findAll(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"ingredients", "instructions", "category"})
+    @EntityGraph(attributePaths = {"category"})
     Optional<Recipe> findWithDetailsById(Long id);
 
     @EntityGraph(attributePaths = {"category"})
@@ -78,13 +78,15 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     Page<Object[]> findPopularRecipes(Pageable pageable);
 
     @Query(nativeQuery = true,
-           value = "SELECT r.id, r.title, r.image_url, c.name, " +
-                   "COALESCE(AVG(rt.rating), 0) as avg_rating " +
-                   "FROM recipes r " +
-                   "JOIN categories c ON c.id = r.category_id " +
-                   "LEFT JOIN ratings rt ON rt.recipe_id = r.id " +
-                   "GROUP BY r.id, c.name, r.title, r.image_url " +
-                   "ORDER BY avg_rating DESC")
+           value = "SELECT r.id, r.title, r.image_url, c.name, r.created_at, " +
+                    "COALESCE(AVG(rt.rating), 0) as avg_rating, " +
+                    "COALESCE((SELECT COUNT(*) FROM favorites f WHERE f.recipe_id = r.id), 0) as fav_count, " +
+                    "COALESCE((SELECT COUNT(*) FROM comments com WHERE com.recipe_id = r.id), 0) as com_count " +
+                    "FROM recipes r " +
+                    "JOIN categories c ON c.id = r.category_id " +
+                    "LEFT JOIN ratings rt ON rt.recipe_id = r.id " +
+                    "GROUP BY r.id, c.name, r.title, r.image_url, r.created_at " +
+                    "ORDER BY avg_rating DESC")
     Page<Object[]> findTopRatedRecipes(Pageable pageable);
 
     @Query(nativeQuery = true,

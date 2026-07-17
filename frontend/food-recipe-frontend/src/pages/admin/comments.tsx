@@ -127,7 +127,7 @@ export default function AdminCommentsPage() {
             keyExtractor={(item) => item.id}
           />
           <Pagination
-            page={data.page}
+            page={data.number}
             totalPages={data.totalPages}
             onPageChange={handlePageChange}
           />
