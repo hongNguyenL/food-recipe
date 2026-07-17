@@ -1,218 +1,162 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Refrigerator, AlertCircle, PackageOpen } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
-import { Pagination } from '@/components/ui/pagination'
-import { IngredientInput } from '@/components/ui/pantry/IngredientInput'
-import { PantryResultCard, PantryResultCardSkeleton } from '@/components/ui/pantry/PantryResultCard'
+import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { recipesApi } from '@/api/recipes'
 import { categoriesApi } from '@/api/categories'
-import { usersApi } from '@/api/users'
 import { useAuth } from '@/hooks/use-auth'
-import type { PantrySearchResult, CategoryResponse } from '@/types'
-import toast from 'react-hot-toast'
+import { IngredientInput } from '@/components/ui/ingredient-input'
+import { SuggestedIngredients } from '@/components/ui/suggested-ingredients'
+import { PantryFilters } from '@/components/ui/pantry-filters'
+import { PantryRecipeCard } from '@/components/ui/pantry-recipe-card'
+import { Pagination } from '@/components/ui/pagination'
+import { Button } from '@/components/ui/button'
+import { EmptyPantryState, NoResultsState, SearchSkeleton, ErrorMessage } from '@/components/ui/pantry-states'
+import { Search, LogIn } from 'lucide-react'
+
+const STORAGE_KEY = 'pantry-ingredients'
 
 export default function PantrySearchPage() {
+  const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
-  const [ingredients, setIngredients] = useState<string[]>([])
-  const [categories, setCategories] = useState<CategoryResponse[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined)
-  const [minMatch, setMinMatch] = useState<number | undefined>(undefined)
-  const [results, setResults] = useState<PantrySearchResult[]>([])
+  const [pantry, setPantry] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      return stored ? JSON.parse(stored) : []
+    } catch { return [] }
+  })
   const [page, setPage] = useState(0)
-  const [totalPages, setTotalPages] = useState(0)
-  const [totalElements, setTotalElements] = useState(0)
-  const [loading, setLoading] = useState(false)
+  const [pageSize, setPageSize] = useState(20)
+  const [minMatch, setMinMatch] = useState(0)
+  const [categoryId, setCategoryId] = useState('')
   const [searched, setSearched] = useState(false)
-  const [favorites, setFavorites] = useState<Set<number>>(new Set())
-  const [favoriteLoading, setFavoriteLoading] = useState<Set<number>>(new Set())
 
   useEffect(() => {
-    categoriesApi.list().then(res => {
-      if (res.success) setCategories(res.data ?? [])
-    }).catch(() => {})
+    if (isAuthenticated && pantry.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(pantry))
+    }
+  }, [isAuthenticated, pantry])
+
+  const addIngredient = useCallback((name: string) => {
+    const trimmed = name.trim().toLowerCase()
+    if (!trimmed) return
+    setPantry((prev) => {
+      if (prev.length >= 30) return prev
+      if (prev.some((i) => i.toLowerCase() === trimmed)) return prev
+      return [...prev, trimmed]
+    })
   }, [])
 
-  useEffect(() => {
-    if (!isAuthenticated) return
-    usersApi.getFavorites({ page: 0, size: 1000 }).then(res => {
-      if (res.success && res.data) {
-        setFavorites(new Set(res.data.content.map(r => r.id)))
-      }
-    }).catch(() => {})
-  }, [isAuthenticated])
+  const removeIngredient = useCallback((name: string) => {
+    setPantry((prev) => prev.filter((i) => i !== name))
+  }, [])
 
-  const doSearch = useCallback(async (pageNum: number) => {
-    if (ingredients.length === 0) {
-      toast.error('Please add at least one ingredient')
-      return
-    }
-    setLoading(true)
+  const { data: catData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoriesApi.list(),
+  })
+  const categories = catData?.data || []
+
+  const searchQuery = useQuery({
+    queryKey: ['pantry-search', { pantry, page, pageSize, minMatch, categoryId }],
+    queryFn: () => recipesApi.pantrySearch({
+      ingredients: pantry,
+      page,
+      size: pageSize,
+      minMatchPercentage: minMatch > 0 ? minMatch : undefined,
+      categoryId: categoryId ? Number(categoryId) : undefined,
+    }),
+    enabled: searched && pantry.length > 0 && isAuthenticated,
+    retry: false,
+  })
+
+  const handleSearch = () => {
+    if (pantry.length === 0) return
+    setPage(0)
     setSearched(true)
-    try {
-      const res = await recipesApi.pantrySearch({
-        ingredients,
-        page: pageNum,
-        size: 12,
-        minMatchPercentage: minMatch,
-        categoryId: selectedCategory,
-      })
-      if (res.success) {
-        setResults(res.data.content)
-        setTotalPages(res.data.totalPages)
-        setTotalElements(res.data.totalElements)
-        setPage(res.data.number)
-      }
-    } catch {
-      toast.error('Search failed. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }, [ingredients, minMatch, selectedCategory])
-
-  const handleToggleFavorite = async (recipeId: number) => {
-    if (!isAuthenticated) {
-      toast.error('Please login to favorite recipes')
-      return
-    }
-    setFavoriteLoading(prev => new Set(prev).add(recipeId))
-    try {
-      if (favorites.has(recipeId)) {
-        await recipesApi.unfavorite(recipeId)
-        setFavorites(prev => { const n = new Set(prev); n.delete(recipeId); return n })
-        toast.success('Removed from favorites')
-      } else {
-        await recipesApi.favorite(recipeId)
-        setFavorites(prev => new Set(prev).add(recipeId))
-        toast.success('Added to favorites')
-      }
-    } catch {
-      toast.error('Failed to update favorite')
-    } finally {
-      setFavoriteLoading(prev => { const n = new Set(prev); n.delete(recipeId); return n })
-    }
   }
 
+  const handleClear = () => {
+    setPage(0)
+    setMinMatch(0)
+    setCategoryId('')
+    setSearched(false)
+  }
+
+  const results = searchQuery.data?.data
+  const hasSearched = searched && pantry.length > 0
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 space-y-8">
-      <div className="text-center space-y-2">
-        <div className="flex items-center justify-center gap-2 text-[var(--primary)]">
-          <Refrigerator size={32} />
-          <h1 className="text-3xl font-bold">What's in My Fridge?</h1>
-        </div>
-        <p className="text-[var(--muted-foreground)] max-w-xl mx-auto">
-          Enter the ingredients you have on hand, and we'll find recipes you can make.
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">What's in My Fridge?</h1>
+        <p className="text-[var(--muted-foreground)]">
+          Enter the ingredients you already have and discover recipes you can make.
         </p>
       </div>
 
-      <div className="mx-auto max-w-2xl space-y-4 rounded-lg border border-[var(--border)] p-6">
+      <div className="space-y-4 rounded-lg border border-[var(--border)] p-4">
         <IngredientInput
-          ingredients={ingredients}
-          onAdd={(ing) => setIngredients(prev => [...prev, ing])}
-          onRemove={(i) => setIngredients(prev => prev.filter((_, idx) => idx !== i))}
+          ingredients={pantry}
+          onAdd={addIngredient}
+          onRemove={removeIngredient}
         />
-
-        <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-[200px]">
-            <Select
-              label="Minimum Match"
-              value={minMatch?.toString() ?? ''}
-              onChange={(e) => setMinMatch(e.target.value ? Number(e.target.value) : undefined)}
-              options={[
-                { value: '', label: 'Any match' },
-                { value: '25', label: '25%+' },
-                { value: '50', label: '50%+' },
-                { value: '75', label: '75%+' },
-                { value: '90', label: '90%+' },
-              ]}
-            />
-          </div>
-          <div className="flex-1 min-w-[200px]">
-            <Select
-              label="Category"
-              value={selectedCategory?.toString() ?? ''}
-              onChange={(e) => setSelectedCategory(e.target.value ? Number(e.target.value) : undefined)}
-              options={[
-                { value: '', label: 'All categories' },
-                ...categories.map(cat => ({ value: cat.id.toString(), label: cat.name })),
-              ]}
-            />
-          </div>
-        </div>
+        <SuggestedIngredients pantry={pantry} onAdd={addIngredient} />
 
         <Button
-          onClick={() => doSearch(0)}
-          disabled={ingredients.length === 0 || loading}
-          className="w-full"
-          size="lg"
+          onClick={handleSearch}
+          disabled={pantry.length === 0}
+          className="w-full sm:w-auto"
         >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              Searching...
-            </span>
-          ) : (
-            <span className="flex items-center gap-2">
-              <Search size={18} />
-              Search Recipes
-            </span>
-          )}
+          <Search size={16} />
+          Search Recipes
         </Button>
       </div>
 
-      {searched && !loading && results.length === 0 && (
-        <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <PackageOpen size={48} className="text-[var(--muted-foreground)]" />
-          <h2 className="text-xl font-semibold">No recipes found</h2>
-          <p className="text-[var(--muted-foreground)] max-w-md">
-            Try adding more ingredients, lowering the minimum match percentage, or changing the category filter.
-          </p>
+      <PantryFilters
+        minMatch={minMatch}
+        onMinMatchChange={(v) => { setMinMatch(v); setPage(0); if (hasSearched) setSearched(true) }}
+        categoryId={categoryId}
+        onCategoryChange={(v) => { setCategoryId(v); setPage(0); if (hasSearched) setSearched(true) }}
+        pageSize={pageSize}
+        onPageSizeChange={(v) => { setPageSize(v); setPage(0) }}
+        categories={categories}
+      />
+
+      {!hasSearched && !searchQuery.isLoading && !isAuthenticated && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <LogIn size={48} className="text-[var(--muted-foreground)] mb-4" />
+          <h2 className="text-xl font-semibold">Log in to use Pantry Search</h2>
+          <p className="mt-2 text-[var(--muted-foreground)]">You need an account to search recipes by ingredients.</p>
+          <Button className="mt-6" onClick={() => navigate('/login')}>Log In</Button>
         </div>
       )}
 
-      {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <PantryResultCardSkeleton key={i} />
-          ))}
-        </div>
+      {!hasSearched && !searchQuery.isLoading && isAuthenticated && <EmptyPantryState />}
+
+      {hasSearched && searchQuery.isLoading && <SearchSkeleton />}
+
+      {hasSearched && searchQuery.isError && (
+        <ErrorMessage onRetry={() => searchQuery.refetch()} />
       )}
 
-      {!loading && results.length > 0 && (
-        <>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Found {totalElements} recipe{totalElements !== 1 ? 's' : ''}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {results.map(r => (
-              <PantryResultCard
-                key={r.recipeId}
-                result={r}
-                isFavorited={favorites.has(r.recipeId)}
-                onToggleFavorite={() => handleToggleFavorite(r.recipeId)}
-                isFavoriteLoading={favoriteLoading.has(r.recipeId)}
-              />
-            ))}
+      {hasSearched && !searchQuery.isLoading && !searchQuery.isError && results && (
+        results.content.length === 0 ? (
+          <NoResultsState onClear={handleClear} />
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Found {results.totalElements} recipe{results.totalElements !== 1 ? 's' : ''}
+            </p>
+            <div className="space-y-4">
+              {results.content.map((r) => (
+                <PantryRecipeCard key={r.recipeId} result={r} />
+              ))}
+            </div>
+            {results.totalPages > 1 && (
+              <Pagination page={results.number} totalPages={results.totalPages} onPageChange={setPage} />
+            )}
           </div>
-
-          {totalPages > 1 && (
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={(p) => doSearch(p)}
-            />
-          )}
-        </>
-      )}
-
-      {!searched && !loading && (
-        <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <AlertCircle size={48} className="text-[var(--muted-foreground)]" />
-          <h2 className="text-xl font-semibold">Ready to cook?</h2>
-          <p className="text-[var(--muted-foreground)] max-w-md">
-            Type ingredients you have into the box above and click Search to find matching recipes.
-          </p>
-        </div>
+        )
       )}
     </div>
   )
