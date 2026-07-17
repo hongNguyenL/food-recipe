@@ -196,3 +196,25 @@ export interface CollectionRecipeResponse {
   recipeImageUrl: string
   addedAt: string
 }
+
+export interface PantrySearchRequest {
+  ingredients: string[]
+  page: number
+  size: number
+  minMatchPercentage?: number
+  categoryId?: number
+}
+
+export interface PantrySearchResult {
+  recipeId: number
+  title: string
+  imageUrl: string
+  categoryName: string
+  averageRating: number
+  matchPercentage: number
+  matchedIngredients: string[]
+  missingIngredients: string[]
+  matchedCount: number
+  missingCount: number
+  totalIngredients: number
+}

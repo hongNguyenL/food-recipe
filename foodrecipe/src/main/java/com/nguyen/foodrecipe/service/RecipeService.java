@@ -1,5 +1,7 @@
 package com.nguyen.foodrecipe.service;
 
+import com.nguyen.foodrecipe.dto.PantrySearchRequest;
+import com.nguyen.foodrecipe.dto.PantrySearchResult;
 import com.nguyen.foodrecipe.dto.PopularRecipeResponse;
 import com.nguyen.foodrecipe.dto.RecipeDetailResponse;
 import com.nguyen.foodrecipe.dto.RecipeRequest;
@@ -37,4 +39,6 @@ public interface RecipeService {
     Page<RecipeSummaryResponse> getLatestRecipes(Pageable pageable);
 
     List<SimilarRecipeResponse> getSimilarRecipes(Long recipeId);
+
+    Page<PantrySearchResult> pantrySearch(PantrySearchRequest request);
 }

@@ -9,6 +9,7 @@ const HomePage = lazy(() => import('@/pages/home'))
 const LoginPage = lazy(() => import('@/pages/login'))
 const RegisterPage = lazy(() => import('@/pages/register'))
 const SearchPage = lazy(() => import('@/pages/search'))
+const PantrySearchPage = lazy(() => import('@/pages/pantry-search'))
 const TopRatedPage = lazy(() => import('@/pages/top-rated'))
 const PopularPage = lazy(() => import('@/pages/popular'))
 const LatestPage = lazy(() => import('@/pages/latest'))
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
       { path: 'register', element: <SuspenseWrapper><RegisterPage /></SuspenseWrapper> },
       { path: 'recipes', element: <SuspenseWrapper><SearchPage /></SuspenseWrapper> },
       { path: 'recipes/:id', element: <SuspenseWrapper><RecipeDetailPage /></SuspenseWrapper> },
+      { path: 'pantry-search', element: <SuspenseWrapper><PantrySearchPage /></SuspenseWrapper> },
       { path: 'categories', element: <SuspenseWrapper><CategoriesPage /></SuspenseWrapper> },
       { path: 'categories/:id', element: <SuspenseWrapper><CategoryRecipesPage /></SuspenseWrapper> },
       { path: 'top-rated', element: <SuspenseWrapper><TopRatedPage /></SuspenseWrapper> },

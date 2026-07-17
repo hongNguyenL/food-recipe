@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { UtensilsCrossed, Moon, Sun, LogOut, User, Settings, LayoutDashboard } from 'lucide-react'
+import { UtensilsCrossed, Moon, Sun, LogOut, User, Settings, LayoutDashboard, Refrigerator } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { useTheme } from '@/hooks/use-theme'
@@ -26,6 +26,10 @@ export function Navbar() {
 
         <div className="hidden md:flex items-center gap-6">
           <Link to="/recipes" className="text-sm font-medium hover:text-[var(--primary)] transition-colors">Recipes</Link>
+          <Link to="/pantry-search" className="flex items-center gap-1 text-sm font-medium hover:text-[var(--primary)] transition-colors">
+            <Refrigerator size={16} />
+            Pantry
+          </Link>
           <Link to="/categories" className="text-sm font-medium hover:text-[var(--primary)] transition-colors">Categories</Link>
           <Link to="/collections" className="text-sm font-medium hover:text-[var(--primary)] transition-colors">Collections</Link>
           <Link to="/top-rated" className="text-sm font-medium hover:text-[var(--primary)] transition-colors">Top Rated</Link>

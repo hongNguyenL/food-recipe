@@ -3,6 +3,8 @@ package com.nguyen.foodrecipe.service.impl;
 import com.nguyen.foodrecipe.dto.IngredientResponse;
 import com.nguyen.foodrecipe.dto.InstructionRequest;
 import com.nguyen.foodrecipe.dto.InstructionResponse;
+import com.nguyen.foodrecipe.dto.PantrySearchRequest;
+import com.nguyen.foodrecipe.dto.PantrySearchResult;
 import com.nguyen.foodrecipe.dto.PopularRecipeResponse;
 import com.nguyen.foodrecipe.dto.RecipeDetailResponse;
 import com.nguyen.foodrecipe.dto.RecipeRequest;
@@ -260,6 +262,33 @@ public class RecipeServiceImpl implements RecipeService {
         return rows.stream().map(this::toSimilarResponse).toList();
     }
 
+    @Override
+    public Page<PantrySearchResult> pantrySearch(PantrySearchRequest request) {
+        log.debug("Pantry search with {} ingredients", request.ingredients().size());
+
+        if (request.size() > 100) {
+            throw new InvalidPageSizeException("Page size must not exceed 100");
+        }
+
+        List<String> cleaned = request.ingredients().stream()
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .toList();
+
+        String[] ingredients = cleaned.toArray(new String[0]);
+        Pageable pageable = PageRequest.of(request.page(), request.size());
+
+        Page<Object[]> page = recipeRepository.pantrySearch(
+                ingredients, request.minMatchPercentage(), request.categoryId(), pageable);
+
+        List<PantrySearchResult> results = page.getContent().stream()
+                .map(this::toPantryResult)
+                .toList();
+
+        return new PageImpl<>(results, pageable, page.getTotalElements());
+    }
+
     private SearchRecipeResponse toSearchResponse(Object[] row) {
         Long id = toLong(row[0]);
         String title = (String) row[1];
@@ -296,6 +325,28 @@ public class RecipeServiceImpl implements RecipeService {
         double averageRating = toDouble(row[4]);
 
         return new SimilarRecipeResponse(id, title, imageUrl, categoryName, averageRating);
+    }
+
+    @SuppressWarnings("unchecked")
+    private PantrySearchResult toPantryResult(Object[] row) {
+        Long id = toLong(row[0]);
+        String title = (String) row[1];
+        String imageUrl = (String) row[2];
+        String categoryName = (String) row[3];
+        double averageRating = toDouble(row[4]);
+        int matchedCount = (int) toLong(row[5]);
+        int missingCount = (int) toLong(row[6]);
+        int totalCount = (int) toLong(row[7]);
+        int matchPercentage = (int) toLong(row[8]);
+
+        String[] matchedArr = (String[]) row[9];
+        String[] missingArr = (String[]) row[10];
+
+        List<String> matched = matchedArr != null ? List.of(matchedArr) : List.of();
+        List<String> missing = missingArr != null ? List.of(missingArr) : List.of();
+
+        return new PantrySearchResult(id, title, imageUrl, categoryName, averageRating,
+                matchPercentage, matched, missing, matchedCount, missingCount, totalCount);
     }
 
     private static long toLong(Object value) {

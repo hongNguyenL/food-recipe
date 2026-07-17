@@ -91,20 +91,64 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
     @Query(nativeQuery = true,
            value = "SELECT r.id, r.title, r.image_url, c.name, " +
-                   "COALESCE(rs.avg_rating, 0) as avg_rating, " +
-                   "CASE WHEN r.category_id = :categoryId THEN 2 ELSE 0 END + COALESCE(ic.shared_count, 0) as relevance_score " +
-                   "FROM recipes r " +
-                   "JOIN categories c ON c.id = r.category_id " +
-                   "LEFT JOIN (SELECT recipe_id, AVG(rating) as avg_rating FROM ratings GROUP BY recipe_id) rs ON rs.recipe_id = r.id " +
-                   "LEFT JOIN (SELECT i2.recipe_id, COUNT(DISTINCT i2.ingredient_text) as shared_count " +
-                   "           FROM ingredients i2 " +
-                   "           WHERE i2.ingredient_text IN (SELECT i1.ingredient_text FROM ingredients i1 WHERE i1.recipe_id = :recipeId) " +
-                   "           AND i2.recipe_id != :recipeId " +
-                   "           GROUP BY i2.recipe_id) ic ON ic.recipe_id = r.id " +
-                   "WHERE r.id != :recipeId " +
-                   "AND (r.category_id = :categoryId OR ic.shared_count > 0) " +
-                   "ORDER BY relevance_score DESC, avg_rating DESC")
+                    "COALESCE(rs.avg_rating, 0) as avg_rating, " +
+                    "CASE WHEN r.category_id = :categoryId THEN 2 ELSE 0 END + COALESCE(ic.shared_count, 0) as relevance_score " +
+                    "FROM recipes r " +
+                    "JOIN categories c ON c.id = r.category_id " +
+                    "LEFT JOIN (SELECT recipe_id, AVG(rating) as avg_rating FROM ratings GROUP BY recipe_id) rs ON rs.recipe_id = r.id " +
+                    "LEFT JOIN (SELECT i2.recipe_id, COUNT(DISTINCT i2.ingredient_text) as shared_count " +
+                    "           FROM ingredients i2 " +
+                    "           WHERE i2.ingredient_text IN (SELECT i1.ingredient_text FROM ingredients i1 WHERE i1.recipe_id = :recipeId) " +
+                    "           AND i2.recipe_id != :recipeId " +
+                    "           GROUP BY i2.recipe_id) ic ON ic.recipe_id = r.id " +
+                    "WHERE r.id != :recipeId " +
+                    "AND (r.category_id = :categoryId OR ic.shared_count > 0) " +
+                    "ORDER BY relevance_score DESC, avg_rating DESC")
     List<Object[]> findSimilarRecipes(@Param("recipeId") Long recipeId,
                                       @Param("categoryId") Long categoryId,
                                       Pageable pageable);
+
+    @Query(nativeQuery = true,
+           value = "SELECT r.id, r.title, r.image_url, c.name, " +
+                   "COALESCE(rs.avg_rating, 0) as avg_rating, " +
+                   "match_stats.matched_count, match_stats.missing_count, " +
+                   "match_stats.total_count, match_stats.match_percentage, " +
+                   "match_stats.matched_ingredients, match_stats.missing_ingredients " +
+                   "FROM ( " +
+                   "  SELECT i.recipe_id, " +
+                   "         COUNT(*) FILTER (WHERE i.match_found) as matched_count, " +
+                   "         COUNT(*) FILTER (WHERE NOT i.match_found) as missing_count, " +
+                   "         COUNT(*) as total_count, " +
+                   "         ROUND((COUNT(*) FILTER (WHERE i.match_found)::numeric / COUNT(*)) * 100) as match_percentage, " +
+                   "         ARRAY_AGG(i.ingredient_text) FILTER (WHERE i.match_found) as matched_ingredients, " +
+                   "         ARRAY_AGG(i.ingredient_text) FILTER (WHERE NOT i.match_found) as missing_ingredients " +
+                   "  FROM ( " +
+                   "    SELECT i.recipe_id, i.ingredient_text, " +
+                   "           EXISTS ( " +
+                   "             SELECT 1 FROM unnest(CAST(:ingredients AS text[])) AS ui(ing) " +
+                   "             WHERE LOWER(TRIM(i.ingredient_text)) LIKE LOWER('%' || TRIM(ui.ing) || '%') " +
+                   "           ) as match_found " +
+                   "    FROM ingredients i " +
+                   "  ) i " +
+                   "  GROUP BY i.recipe_id " +
+                   "  HAVING COUNT(*) FILTER (WHERE i.match_found) > 0 " +
+                   ") match_stats " +
+                   "JOIN recipes r ON r.id = match_stats.recipe_id " +
+                   "JOIN categories c ON c.id = r.category_id " +
+                   "LEFT JOIN (SELECT recipe_id, AVG(rating) as avg_rating FROM ratings GROUP BY recipe_id) rs ON rs.recipe_id = r.id " +
+                   "WHERE (:minMatchPercentage IS NULL OR match_stats.match_percentage >= :minMatchPercentage) " +
+                   "AND (:categoryId IS NULL OR r.category_id = :categoryId) " +
+                   "ORDER BY match_stats.match_percentage DESC, match_stats.missing_count ASC, r.title ASC",
+           countQuery = "SELECT COUNT(*) FROM ( " +
+                        "  SELECT recipe_id FROM ingredients i " +
+                        "  WHERE EXISTS ( " +
+                        "    SELECT 1 FROM unnest(CAST(:ingredients AS text[])) AS ui(ing) " +
+                        "    WHERE LOWER(TRIM(i.ingredient_text)) LIKE LOWER('%' || TRIM(ui.ing) || '%') " +
+                        "  ) " +
+                        "  GROUP BY recipe_id " +
+                        ") matching")
+    Page<Object[]> pantrySearch(@Param("ingredients") String[] ingredients,
+                                 @Param("minMatchPercentage") Integer minMatchPercentage,
+                                 @Param("categoryId") Long categoryId,
+                                 Pageable pageable);
 }

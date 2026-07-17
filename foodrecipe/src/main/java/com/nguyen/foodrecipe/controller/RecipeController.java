@@ -85,6 +85,15 @@ public class RecipeController {
         return ResponseEntity.ok(ApiResponse.success("Latest recipes fetched successfully", page));
     }
 
+    @PostMapping("/pantry-search")
+    @Operation(summary = "Pantry search",
+            description = "Search recipes by ingredients you have. Returns recipes ranked by match percentage. Case-insensitive with partial matching.")
+    public ResponseEntity<ApiResponse<Page<PantrySearchResult>>> pantrySearch(
+            @Valid @RequestBody PantrySearchRequest request) {
+        Page<PantrySearchResult> page = recipeService.pantrySearch(request);
+        return ResponseEntity.ok(ApiResponse.success("Pantry search results fetched successfully", page));
+    }
+
     @GetMapping("/{id}/similar")
     @Operation(summary = "Similar recipes",
             description = "Recommend up to 10 similar recipes based on shared category and common ingredients, ranked by relevance.")

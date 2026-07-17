@@ -1,4 +1,4 @@
-import type { ApiResponse, Page, RecipeDetail, RecipeSummary, SearchRecipeResponse, PopularRecipeResponse, SimilarRecipeResponse, RecipeRatingResponse, RatingResponse, CommentResponse, RecipeFormData } from '@/types'
+import type { ApiResponse, Page, RecipeDetail, RecipeSummary, SearchRecipeResponse, PopularRecipeResponse, SimilarRecipeResponse, RecipeRatingResponse, RatingResponse, CommentResponse, RecipeFormData, PantrySearchRequest, PantrySearchResult } from '@/types'
 import apiClient from './client'
 
 export const recipesApi = {
@@ -52,6 +52,10 @@ export const recipesApi = {
   },
   addComment: async (id: number, content: string) => {
     const res = await apiClient.post<ApiResponse<CommentResponse>>(`/api/recipes/${id}/comments`, { content })
+    return res.data
+  },
+  pantrySearch: async (data: PantrySearchRequest) => {
+    const res = await apiClient.post<ApiResponse<Page<PantrySearchResult>>>('/api/recipes/pantry-search', data)
     return res.data
   },
 }
