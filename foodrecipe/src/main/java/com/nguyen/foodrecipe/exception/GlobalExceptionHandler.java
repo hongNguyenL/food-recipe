@@ -11,7 +11,9 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -23,14 +25,17 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException ex) {
 
         Map<String, String> errors = new HashMap<>();
+        List<String> details = new ArrayList<>();
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             errors.put(fieldError.getField(), fieldError.getDefaultMessage());
+            details.add(fieldError.getField() + ": " + fieldError.getDefaultMessage());
         }
 
-        log.warn("Validation failed: {}", errors);
+        String message = String.join(" | ", details);
+        log.warn("Validation failed: {}", message);
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("Validation failed", errors));
+                .body(ApiResponse.error(message, errors));
     }
 
     @ExceptionHandler(RecipeNotFoundException.class)
@@ -68,9 +73,11 @@ public class GlobalExceptionHandler {
             DuplicateUsernameException ex) {
 
         log.warn("Duplicate username: {}", ex.getMessage());
+        Map<String, String> errors = new HashMap<>();
+        errors.put("username", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error(ex.getMessage()));
+                .body(ApiResponse.error(ex.getMessage(), errors));
     }
 
     @ExceptionHandler(DuplicateEmailException.class)
@@ -78,9 +85,11 @@ public class GlobalExceptionHandler {
             DuplicateEmailException ex) {
 
         log.warn("Duplicate email: {}", ex.getMessage());
+        Map<String, String> errors = new HashMap<>();
+        errors.put("email", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error(ex.getMessage()));
+                .body(ApiResponse.error(ex.getMessage(), errors));
     }
 
     @ExceptionHandler(DuplicateFavoriteException.class)

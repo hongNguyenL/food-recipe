@@ -71,7 +71,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void register_DuplicateUsername_ShouldReturn409() throws Exception {
+    void register_DuplicateUsername_ShouldReturn409WithFieldError() throws Exception {
         given(authService.register(any(RegisterRequest.class)))
                 .willThrow(new DuplicateUsernameException("testuser"));
 
@@ -81,11 +81,12 @@ class AuthControllerTest {
                                 {"username":"testuser","email":"test@example.com","password":"Password123"}
                                 """))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errors.username").value("Username already taken: testuser"));
     }
 
     @Test
-    void register_DuplicateEmail_ShouldReturn409() throws Exception {
+    void register_DuplicateEmail_ShouldReturn409WithFieldError() throws Exception {
         given(authService.register(any(RegisterRequest.class)))
                 .willThrow(new DuplicateEmailException("test@example.com"));
 
@@ -95,18 +96,55 @@ class AuthControllerTest {
                                 {"username":"testuser","email":"test@example.com","password":"Password123"}
                                 """))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errors.email").value("Email already in use: test@example.com"));
     }
 
     @Test
-    void register_InvalidPassword_ShouldReturn400() throws Exception {
+    void register_InvalidPassword_ShouldReturn400WithFieldError() throws Exception {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"username":"testuser","email":"test@example.com","password":"weak"}
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("password:")))
+                .andExpect(jsonPath("$.errors.password").value(
+                        "Password must be at least 8 characters and contain uppercase, lowercase, and a digit"));
+    }
+
+    @Test
+    void register_EmptyFields_ShouldReturn400WithAllFieldErrors() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username":"","email":"","password":""}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(
+                        org.hamcrest.Matchers.containsString("username:")))
+                .andExpect(jsonPath("$.message").value(
+                        org.hamcrest.Matchers.containsString("email:")))
+                .andExpect(jsonPath("$.message").value(
+                        org.hamcrest.Matchers.containsString("password:")))
+                .andExpect(jsonPath("$.errors.username").value("Username is required"))
+                .andExpect(jsonPath("$.errors.email").value("Email is required"))
+                .andExpect(jsonPath("$.errors.password").value("Password is required"));
+    }
+
+    @Test
+    void register_ShortUsername_ShouldReturnFieldError() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username":"ab","email":"test@example.com","password":"Password123"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errors.username").value(
+                        "Username must be between 3 and 30 characters"));
     }
 
     @Test
