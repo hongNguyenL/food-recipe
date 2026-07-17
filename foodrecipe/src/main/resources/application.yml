@@ -44,9 +44,9 @@ spring:
       on-profile: dev
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/foodrecipe_db}
+    url: ${DB_URL:jdbc:postgresql://db.dqulxqootxqnapisxzju.supabase.co:5432/postgres}
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    password: ${DB_PASSWORD:lequyhongnguyen1510}
     driver-class-name: org.postgresql.Driver
 
   cache:
