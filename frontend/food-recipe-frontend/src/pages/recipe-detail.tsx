@@ -14,6 +14,8 @@ import { CommentList } from '@/components/ui/comment-list'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ErrorComponent } from '@/components/ui/error-component'
 import { RecipeCard } from '@/components/ui/recipe-card'
+import { AddToCollectionModal } from '@/components/ui/add-to-collection-modal'
+import { FolderPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function RecipeDetail() {
@@ -24,6 +26,7 @@ export default function RecipeDetail() {
   const [commentPage, setCommentPage] = useState(0)
   const [newComment, setNewComment] = useState('')
   const [isFavorited, setIsFavorited] = useState(false)
+  const [showCollectionModal, setShowCollectionModal] = useState(false)
 
   const detailQuery = useQuery({
     queryKey: ['recipe', recipeId],
@@ -153,12 +156,18 @@ export default function RecipeDetail() {
               </div>
             </div>
             {auth.isAuthenticated && (
-              <FavoriteButton
-                isFavorited={isFavorited}
-                count={recipe.favoriteCount}
-                onToggle={() => favoriteMutation.mutate()}
-                isLoading={favoriteMutation.isPending}
-              />
+              <div className="flex items-center gap-2">
+                <FavoriteButton
+                  isFavorited={isFavorited}
+                  count={recipe.favoriteCount}
+                  onToggle={() => favoriteMutation.mutate()}
+                  isLoading={favoriteMutation.isPending}
+                />
+                <Button variant="outline" size="sm" onClick={() => setShowCollectionModal(true)}>
+                  <FolderPlus size={16} />
+                  Collect
+                </Button>
+              </div>
             )}
           </div>
 
@@ -279,6 +288,13 @@ export default function RecipeDetail() {
           </CardContent>
         </Card>
       </div>
+
+      <AddToCollectionModal
+        recipeId={recipeId}
+        recipeTitle={recipe.title}
+        isOpen={showCollectionModal}
+        onClose={() => setShowCollectionModal(false)}
+      />
     </div>
   )
 }

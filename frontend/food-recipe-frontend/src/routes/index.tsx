@@ -16,6 +16,11 @@ const RecipeDetailPage = lazy(() => import('@/pages/recipe-detail'))
 const CategoriesPage = lazy(() => import('@/pages/categories'))
 const CategoryRecipesPage = lazy(() => import('@/pages/category-recipes'))
 const DashboardPage = lazy(() => import('@/pages/dashboard'))
+const MyCollectionsPage = lazy(() => import('@/pages/my-collections'))
+const PublicCollectionsPage = lazy(() => import('@/pages/public-collections'))
+const CollectionDetailPage = lazy(() => import('@/pages/collection-detail'))
+const CreateCollectionPage = lazy(() => import('@/pages/create-collection'))
+const EditCollectionPage = lazy(() => import('@/pages/edit-collection'))
 const NotFoundPage = lazy(() => import('@/pages/not-found'))
 
 const AdminDashboardPage = lazy(() => import('@/pages/admin/dashboard'))
@@ -48,6 +53,32 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <SuspenseWrapper><DashboardPage /></SuspenseWrapper>
+          </ProtectedRoute>
+        ),
+      },
+      { path: 'collections', element: <SuspenseWrapper><PublicCollectionsPage /></SuspenseWrapper> },
+      { path: 'collections/:id', element: <SuspenseWrapper><CollectionDetailPage /></SuspenseWrapper> },
+      {
+        path: 'my-collections',
+        element: (
+          <ProtectedRoute>
+            <SuspenseWrapper><MyCollectionsPage /></SuspenseWrapper>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'my-collections/new',
+        element: (
+          <ProtectedRoute>
+            <SuspenseWrapper><CreateCollectionPage /></SuspenseWrapper>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'my-collections/:id/edit',
+        element: (
+          <ProtectedRoute>
+            <SuspenseWrapper><EditCollectionPage /></SuspenseWrapper>
           </ProtectedRoute>
         ),
       },

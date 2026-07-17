@@ -27,6 +27,7 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-6">
           <Link to="/recipes" className="text-sm font-medium hover:text-[var(--primary)] transition-colors">Recipes</Link>
           <Link to="/categories" className="text-sm font-medium hover:text-[var(--primary)] transition-colors">Categories</Link>
+          <Link to="/collections" className="text-sm font-medium hover:text-[var(--primary)] transition-colors">Collections</Link>
           <Link to="/top-rated" className="text-sm font-medium hover:text-[var(--primary)] transition-colors">Top Rated</Link>
           <Link to="/popular" className="text-sm font-medium hover:text-[var(--primary)] transition-colors">Popular</Link>
           <Link to="/latest" className="text-sm font-medium hover:text-[var(--primary)] transition-colors">Latest</Link>
@@ -57,6 +58,13 @@ export function Navbar() {
                     >
                       <User size={16} />
                       Dashboard
+                    </Link>
+                    <Link
+                      to="/my-collections"
+                      className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-[var(--accent)] transition-colors"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Collections
                     </Link>
                     {isAdmin && (
                       <Link

@@ -149,3 +149,50 @@ export interface RecipeFormData {
   ingredients: string[]
   instructions: { stepNumber: number; instructionText: string }[]
 }
+
+export interface CollectionRequest {
+  name: string
+  description?: string
+  visibility: 'PUBLIC' | 'PRIVATE'
+}
+
+export interface CollectionSummaryResponse {
+  id: number
+  name: string
+  description: string
+  visibility: 'PUBLIC' | 'PRIVATE'
+  ownerUsername: string
+  recipeCount: number
+  createdAt: string
+}
+
+export interface CollectionResponse {
+  id: number
+  name: string
+  description: string
+  visibility: 'PUBLIC' | 'PRIVATE'
+  ownerUsername: string
+  recipeCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CollectionDetailResponse {
+  id: number
+  name: string
+  description: string
+  visibility: 'PUBLIC' | 'PRIVATE'
+  ownerUsername: string
+  createdAt: string
+  updatedAt: string
+  recipes: CollectionRecipeResponse[]
+  totalRecipeCount: number
+}
+
+export interface CollectionRecipeResponse {
+  id: number
+  recipeId: number
+  recipeTitle: string
+  recipeImageUrl: string
+  addedAt: string
+}
