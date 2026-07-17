@@ -122,6 +122,36 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(CollectionNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleCollectionNotFound(
+            CollectionNotFoundException ex) {
+
+        log.warn("Collection not found: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateCollectionRecipeException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDuplicateCollectionRecipe(
+            DuplicateCollectionRecipeException ex) {
+
+        log.warn("Duplicate collection recipe: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(CollectionAccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleCollectionAccessDenied(
+            CollectionAccessDeniedException ex) {
+
+        log.warn("Collection access denied: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(CategoryHasRecipesException.class)
     public ResponseEntity<ApiResponse<Void>> handleCategoryHasRecipes(
             CategoryHasRecipesException ex) {
