@@ -92,11 +92,6 @@ SEED_DATA = {
 
 def seed():
     config = Config()
-    config.DB_HOST = "localhost"
-    config.DB_PORT = 5432
-    config.DB_NAME = "foodrecipe_db"
-    config.DB_USER = "postgres"
-    config.DB_PASSWORD = "postgres"
 
     conn = get_connection(config)
     if not test_connection(conn):
